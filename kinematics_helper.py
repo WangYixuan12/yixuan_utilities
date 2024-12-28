@@ -40,11 +40,10 @@ class KinHelper:
         loader = self.scene.create_urdf_loader()
         self.sapien_robot = loader.load(urdf_path)
         self.robot_model = self.sapien_robot.create_pinocchio_model()
-        self.sapien_eef_idx = -1
+        self.link_name_to_idx: dict = {}
         for link_idx, link in enumerate(self.sapien_robot.get_links()):
-            if link.name == self.eef_name:
-                self.sapien_eef_idx = link_idx
-                break
+            self.link_name_to_idx[link.name] = link_idx
+        self.sapien_eef_idx = self.link_name_to_idx[self.eef_name]
 
         # load meshes and offsets from urdf_robot
         self.meshes = {}
@@ -190,7 +189,7 @@ class KinHelper:
             meshes_ls.append(mesh)
         return meshes_ls
 
-    def compute_fk_links(
+    def compute_fk_from_link_idx(
         self,
         qpos: np.ndarray,
         link_idx: list[int],
@@ -199,10 +198,24 @@ class KinHelper:
         self.robot_model.compute_forward_kinematics(qpos)
         link_pose_ls = []
         for i in link_idx:
-            link_pose_ls.append(
-                self.robot_model.get_link_pose(i).to_transformation_matrix()
-            )
+            pose = self.robot_model.get_link_pose(i)
+            link_pose_ls.append(pose.to_transformation_matrix())
         return link_pose_ls
+
+    def compute_fk_from_link_names(
+        self,
+        qpos: np.ndarray,
+        link_names: list[str],
+    ) -> list[np.ndarray]:
+        """Compute forward kinematics of robot links given joint positions"""
+        self.robot_model.compute_forward_kinematics(qpos)
+        link_idx_ls = [self.link_name_to_idx[link_name] for link_name in link_names]
+        return self.compute_fk_from_link_idx(qpos, link_idx_ls)
+
+    def compute_all_fk(self, qpos: np.ndarray) -> list[np.ndarray]:
+        """Compute forward kinematics of all robot links given joint positions"""
+        all_link_names = [link.name for link in self.sapien_robot.get_links()]
+        return self.compute_fk_from_link_names(qpos, all_link_names)
 
     def compute_ik(
         self,
@@ -231,7 +244,7 @@ class KinHelper:
             damp=1e-1,
         )
         # verify ik
-        fk_pose = self.compute_fk_links(qpos[0], [self.sapien_eef_idx])[0]
+        fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
         # print('target pose for IK:', tf_mat)
         # print('fk pose for IK:', fk_pose)
         pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
@@ -276,7 +289,9 @@ def test_kin_helper_trossen() -> None:
     kin_helper = KinHelper(robot_name=robot_name)
     for i in range(100):
         curr_qpos = init_qpos + (end_qpos - init_qpos) * i / 100
-        fk_pose = kin_helper.compute_fk_links(curr_qpos, [kin_helper.sapien_eef_idx])[0]
+        fk_pose = kin_helper.compute_fk_from_link_idx(
+            curr_qpos, [kin_helper.sapien_eef_idx]
+        )[0]
         print("fk pose:", fk_pose)
         start_time = time.time()
         pcd = kin_helper.compute_robot_pcd(
@@ -336,7 +351,9 @@ def test_kin_helper_panda() -> None:
     kin_helper = KinHelper(robot_name=robot_name)
     for i in range(total_steps):
         curr_qpos = init_qpos + (end_qpos - init_qpos) * i / total_steps
-        fk_pose = kin_helper.compute_fk_links(curr_qpos, [kin_helper.sapien_eef_idx])[0]
+        fk_pose = kin_helper.compute_fk_from_link_idx(
+            curr_qpos, [kin_helper.sapien_eef_idx]
+        )[0]
         print("fk pose:", fk_pose)
         start_time = time.time()
         pcd = kin_helper.compute_robot_pcd(
@@ -370,7 +387,9 @@ def test_fk() -> None:
     START_ARM_POSE = [0, -0.96, 1.16, 0, -0.3, 0, 0.02239, -0.02239]
     for i in range(100):
         curr_qpos = init_qpos + (end_qpos - init_qpos) * i / 100
-        fk = kin_helper.compute_fk_links(curr_qpos, [kin_helper.sapien_eef_idx])[0]
+        fk = kin_helper.compute_fk_from_link_idx(
+            curr_qpos, [kin_helper.sapien_eef_idx]
+        )[0]
         fk_euler = transforms3d.euler.mat2euler(fk[:3, :3], axes="sxyz")
 
         if i == 0:
@@ -378,7 +397,7 @@ def test_fk() -> None:
         ik_qpos = kin_helper.compute_ik(
             init_ik_qpos, np.array(list(fk[:3, 3]) + list(fk_euler)).astype(np.float32)
         )
-        re_fk_pos_mat = kin_helper.compute_fk_links(
+        re_fk_pos_mat = kin_helper.compute_fk_from_link_idx(
             ik_qpos, [kin_helper.sapien_eef_idx]
         )[0]
         re_fk_euler = transforms3d.euler.mat2euler(re_fk_pos_mat[:3, :3], axes="sxyz")
