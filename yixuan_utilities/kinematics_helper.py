@@ -10,7 +10,7 @@ import sapien.core as sapien
 import transforms3d
 import urchin
 
-from .draw_utils import np2o3d
+from yixuan_utilities.draw_utils import np2o3d
 
 logger = logging.getLogger(__name__)
 
@@ -206,16 +206,24 @@ class KinHelper:
         self,
         qpos: np.ndarray,
         link_names: list[str],
-    ) -> list[np.ndarray]:
+        in_obj_frame: bool = False,
+    ) -> dict[str, np.ndarray]:
         """Compute forward kinematics of robot links given joint positions"""
         self.robot_model.compute_forward_kinematics(qpos)
         link_idx_ls = [self.link_name_to_idx[link_name] for link_name in link_names]
-        return self.compute_fk_from_link_idx(qpos, link_idx_ls)
+        poses_ls = self.compute_fk_from_link_idx(qpos, link_idx_ls)
+        if in_obj_frame:
+            for i in range(len(link_names)):
+                if link_names[i] in self.offsets:
+                    poses_ls[i] = poses_ls[i] @ self.offsets[link_names[i]]
+        return {link_name: pose for link_name, pose in zip(link_names, poses_ls)}
 
-    def compute_all_fk(self, qpos: np.ndarray) -> list[np.ndarray]:
+    def compute_all_fk(
+        self, qpos: np.ndarray, in_obj_frame: bool = False
+    ) -> dict[str, np.ndarray]:
         """Compute forward kinematics of all robot links given joint positions"""
         all_link_names = [link.name for link in self.sapien_robot.get_links()]
-        return self.compute_fk_from_link_names(qpos, all_link_names)
+        return self.compute_fk_from_link_names(qpos, all_link_names, in_obj_frame)
 
     def compute_ik(
         self,
