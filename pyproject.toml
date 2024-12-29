@@ -2,6 +2,12 @@
 name = "yixuan_utilities"
 version = "2024.12.28"
 
+[tool.setuptools]
+py-modules = []
+
+[tool.setuptools.packages.find]
+include = ["yixuan_utilities", "assets"]
+
 [tool.ruff.lint]
 
 # Allow unused variables when underscore-prefixed.

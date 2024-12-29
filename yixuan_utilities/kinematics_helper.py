@@ -10,7 +10,7 @@ import sapien.core as sapien
 import transforms3d
 import urchin
 
-from draw_utils import np2o3d
+from .draw_utils import np2o3d
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class KinHelper:
     def __init__(self, robot_name: str = "trossen_vx300s_tactile_thin"):
         # load robot
         current_dir = Path(__file__).parent
-        package_dir = (current_dir / "assets").resolve()
+        package_dir = (current_dir / ".." / "assets").resolve()
         if "trossen" in robot_name:
             trossen_urdf_prefix = "_".join(robot_name.split("_")[1:])
             urdf_path = (
