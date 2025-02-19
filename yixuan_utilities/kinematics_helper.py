@@ -8,7 +8,7 @@ import numpy as np
 import open3d as o3d
 import sapien.core as sapien
 import transforms3d
-import urchin
+import urdfpy
 
 from yixuan_utilities.draw_utils import np2o3d
 
@@ -28,11 +28,14 @@ class KinHelper:
                 f"{package_dir}/robot/trossen_description/{trossen_urdf_prefix}.urdf"
             )
             self.eef_name = "vx300s/ee_arm_link"
-        elif "panda" in robot_name:
+        elif robot_name == "panda":
             urdf_path = f"{package_dir}/robot/panda/panda.urdf"
             self.eef_name = "panda_hand"
+        elif robot_name == "pyrep_panda":
+            urdf_path = f"{package_dir}/robot/pyrep_panda/panda.urdf"
+            self.eef_name = "Pandatip"
         self.robot_name = robot_name
-        self.urdf_robot = urchin.URDF.load(urdf_path)
+        self.urdf_robot = urdfpy.URDF.load(urdf_path)
 
         # load sapien robot
         self.engine = sapien.Engine()
@@ -52,7 +55,10 @@ class KinHelper:
         for link in self.urdf_robot.links:
             if len(link.collisions) > 0:
                 collision = link.collisions[0]
-                if len(collision.geometry.mesh.meshes) > 0:
+                if (
+                    collision.geometry.mesh is not None
+                    and len(collision.geometry.mesh.meshes) > 0
+                ):
                     mesh = collision.geometry.mesh.meshes[0]
                     self.meshes[link.name] = mesh.as_open3d
                     self.meshes[link.name].compute_vertex_normals()
