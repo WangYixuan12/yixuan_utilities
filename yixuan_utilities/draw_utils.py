@@ -8,6 +8,24 @@ import numpy as np
 import open3d as o3d
 
 
+def center_crop(img: np.ndarray, crop_size: tuple[int, int]) -> np.ndarray:
+    h, w = img.shape[:2]
+    th, tw = crop_size
+    if h / w > th / tw:
+        # image is taller than crop
+        crop_w = w
+        crop_h = int(round(w * th / tw))
+    elif h / w < th / tw:
+        # image is wider than crop
+        crop_h = h
+        crop_w = int(round(h * tw / th))
+    else:
+        return img
+    x1 = (w - crop_w) // 2
+    y1 = (h - crop_h) // 2
+    return img[y1 : y1 + crop_h, x1 : x1 + crop_w]
+
+
 def np2o3d(
     pcd: np.ndarray, color: Union[None, np.ndarray] = None
 ) -> o3d.geometry.PointCloud:

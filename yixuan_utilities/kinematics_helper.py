@@ -235,6 +235,7 @@ class KinHelper:
         self,
         initial_qpos: np.ndarray,
         cartesian: np.ndarray,
+        damp: float = 1e-1,
     ) -> np.ndarray:
         """Compute inverse kinematics given initial joint pos and target pose"""
         tf_mat = np.eye(4)
@@ -255,19 +256,17 @@ class KinHelper:
             initial_qpos=initial_qpos,
             active_qmask=active_qmask,
             eps=1e-3,
-            damp=1e-1,
+            damp=damp,
         )
         # verify ik
-        fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
-        # print('target pose for IK:', tf_mat)
-        # print('fk pose for IK:', fk_pose)
-        pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
-        rot_diff = np.linalg.norm(fk_pose[:3, :3] - tf_mat[:3, :3])
-        if pose_diff > 0.01 or rot_diff > 0.01:
-            print("ik pose diff:", pose_diff)
-            print("ik rot diff:", rot_diff)
-            logger.warning("ik pose diff or rot diff too large. Return initial qpos.")
-            return initial_qpos
+        # fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
+        # pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
+        # rot_diff = np.linalg.norm(fk_pose[:3, :3] - tf_mat[:3, :3])
+        # if pose_diff > 0.01 or rot_diff > 0.01:
+        #     print("ik pose diff:", pose_diff)
+        #     print("ik rot diff:", rot_diff)
+        #     logger.warning("ik pose diff or rot diff too large. Return initial qpos.")
+        #     return initial_qpos
         return qpos[0]
 
 
