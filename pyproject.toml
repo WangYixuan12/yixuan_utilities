@@ -6,7 +6,7 @@ version = "2024.12.28"
 py-modules = []
 
 [tool.setuptools.packages.find]
-include = ["yixuan_utilities", "assets"]
+include = ["yixuan_utilities"]
 
 [tool.ruff.lint]
 
