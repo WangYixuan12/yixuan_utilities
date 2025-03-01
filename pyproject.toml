@@ -7,7 +7,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["yixuan_utilities"]
+where = ["."]
+include = ["yixuan_utilities"]
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]
