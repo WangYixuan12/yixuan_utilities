@@ -8,6 +8,9 @@ py-modules = []
 [tool.setuptools.packages.find]
 include = ["yixuan_utilities"]
 
+[tool.setuptools.package-data]
+"*" = ["*.*"] # <-- this changed
+
 [tool.ruff.lint]
 
 # Allow unused variables when underscore-prefixed.
