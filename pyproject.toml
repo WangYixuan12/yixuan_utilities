@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["yixuan_utilities", "yixuan_utilities.*"]
+include = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]
