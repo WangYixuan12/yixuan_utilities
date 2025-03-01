@@ -6,7 +6,7 @@ version = "2025.03.01"
 py-modules = []
 
 [tool.setuptools.packages.find]
-include = ["yixuan_utilities"]
+where = ["yixuan_utilities"]
 
 [tool.setuptools.package-data]
 "*" = ["*.*"] # <-- this changed
