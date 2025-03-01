@@ -6,11 +6,8 @@ version = "2025.03.01"
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
-
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["yixuan_utilities/src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]
