@@ -26,6 +26,12 @@ def center_crop(img: np.ndarray, crop_size: tuple[int, int]) -> np.ndarray:
     return img[y1 : y1 + crop_h, x1 : x1 + crop_w]
 
 
+def resize_to_height(img: np.ndarray, height: int) -> np.ndarray:
+    h, w = img.shape[:2]
+    scale = height / h
+    return cv2.resize(img, (int(w * scale), height), interpolation=cv2.INTER_LINEAR)
+
+
 def np2o3d(
     pcd: np.ndarray, color: Union[None, np.ndarray] = None
 ) -> o3d.geometry.PointCloud:
