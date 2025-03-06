@@ -22,9 +22,7 @@ jobs:
       # Install dependencies (Sphinx and any project dependencies)
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          # Ensure Sphinx is installed if not in requirements.txt
-          pip install sphinx sphinx_rtd_theme sphinx-autodoc napoleon
+          pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints
 
       # Generate the documentation using Sphinx
       - name: Generate Documentation
