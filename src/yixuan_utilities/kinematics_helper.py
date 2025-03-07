@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class KinHelper:
     """Helper class for kinematics-related functions"""
 
-    def __init__(self, robot_name: str = "trossen_vx300s_tactile_thin"):
+    def __init__(self, robot_name: str = "trossen_vx300s"):
         # load robot
         current_dir = Path(__file__).parent
         package_dir = (current_dir / "assets").resolve()
@@ -243,6 +243,39 @@ class KinHelper:
             ai=cartesian[3], aj=cartesian[4], ak=cartesian[5], axes="sxyz"
         )
         tf_mat[:3, 3] = cartesian[0:3]
+        pose = sapien.Pose.from_transformation_matrix(tf_mat)
+        if "trossen" in self.robot_name:
+            active_qmask = np.array([True, True, True, True, True, True, False, False])
+        elif "panda" in self.robot_name:
+            active_qmask = np.array(
+                [True, True, True, True, True, True, True, True, True]
+            )
+        qpos = self.robot_model.compute_inverse_kinematics(
+            link_index=self.sapien_eef_idx,
+            pose=pose,
+            initial_qpos=initial_qpos,
+            active_qmask=active_qmask,
+            eps=1e-3,
+            damp=damp,
+        )
+        # verify ik
+        # fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
+        # pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
+        # rot_diff = np.linalg.norm(fk_pose[:3, :3] - tf_mat[:3, :3])
+        # if pose_diff > 0.01 or rot_diff > 0.01:
+        #     print("ik pose diff:", pose_diff)
+        #     print("ik rot diff:", rot_diff)
+        #     logger.warning("ik pose diff or rot diff too large. Return initial qpos.")
+        #     return initial_qpos
+        return qpos[0]
+
+    def compute_ik_from_mat(
+        self,
+        initial_qpos: np.ndarray,
+        tf_mat: np.ndarray,
+        damp: float = 1e-1,
+    ) -> np.ndarray:
+        """Compute IK given initial joint pos and target pose in matrix form"""
         pose = sapien.Pose.from_transformation_matrix(tf_mat)
         if "trossen" in self.robot_name:
             active_qmask = np.array([True, True, True, True, True, True, False, False])
