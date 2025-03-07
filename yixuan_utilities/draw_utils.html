@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.5">
+<title>yixuan_utilities.draw_utils API documentation</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>yixuan_utilities.draw_utils</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="yixuan_utilities.draw_utils.center_crop"><code class="name flex">
+<span>def <span class="ident">center_crop</span></span>(<span>img: numpy.ndarray, crop_size: tuple[int, int]) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def center_crop(img: np.ndarray, crop_size: tuple[int, int]) -&gt; np.ndarray:
+    h, w = img.shape[:2]
+    th, tw = crop_size
+    if h / w &gt; th / tw:
+        # image is taller than crop
+        crop_w = w
+        crop_h = int(round(w * th / tw))
+    elif h / w &lt; th / tw:
+        # image is wider than crop
+        crop_h = h
+        crop_w = int(round(h * tw / th))
+    else:
+        return img
+    x1 = (w - crop_w) // 2
+    y1 = (h - crop_h) // 2
+    return img[y1 : y1 + crop_h, x1 : x1 + crop_w]</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.np2o3d"><code class="name flex">
+<span>def <span class="ident">np2o3d</span></span>(<span>pcd: numpy.ndarray, color: numpy.ndarray | None = None) ‑> open3d.cpu.pybind.geometry.PointCloud</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def np2o3d(
+    pcd: np.ndarray, color: Union[None, np.ndarray] = None
+) -&gt; o3d.geometry.PointCloud:
+    # pcd: (n, 3)
+    # color: (n, 3)
+    pcd_o3d = o3d.geometry.PointCloud()
+    pcd_o3d.points = o3d.utility.Vector3dVector(pcd)
+    if color is not None:
+        assert pcd.shape[0] == color.shape[0]
+        assert color.max() &lt;= 1
+        assert color.min() &gt;= 0
+        pcd_o3d.colors = o3d.utility.Vector3dVector(color)
+    return pcd_o3d</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.resize_to_height"><code class="name flex">
+<span>def <span class="ident">resize_to_height</span></span>(<span>img: numpy.ndarray, height: int) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resize_to_height(img: np.ndarray, height: int) -&gt; np.ndarray:
+    h, w = img.shape[:2]
+    scale = height / h
+    return cv2.resize(img, (int(w * scale), height), interpolation=cv2.INTER_LINEAR)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.test_o3d_vis"><code class="name flex">
+<span>def <span class="ident">test_o3d_vis</span></span>(<span>) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_o3d_vis() -&gt; None:
+    view_ctrl_info = {
+        &#34;front&#34;: [0.36137433126422974, 0.5811161319788094, 0.72918628200022917],
+        &#34;lookat&#34;: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001],
+        &#34;up&#34;: [-0.17552920841503886, 0.81045157347999874, -0.55888974229000143],
+        &#34;zoom&#34;: 1.3400000000000005,
+    }
+    o3d_vis = o3dVisualizer(view_ctrl_info=view_ctrl_info, save_path=&#34;tmp&#34;)
+    o3d_vis.start()
+    for i in range(100):
+        rand_pcd_np = np.random.rand(100, 3)
+        rand_pcd_colors = np.random.rand(100, 3)
+        rand_pcd_o3d = np2o3d(rand_pcd_np, rand_pcd_colors)
+        o3d_vis.update_pcd(rand_pcd_o3d, &#34;rand_pcd&#34;)
+        if i == 0:
+            o3d_vis.add_triangle_mesh(
+                &#34;sphere&#34;, &#34;sphere&#34;, color=[1.0, 0.0, 0.0], radius=0.1
+            )
+            o3d_vis.add_triangle_mesh(
+                &#34;box&#34;, &#34;box&#34;, color=[0.0, 1.0, 0.0], width=0.1, height=0.1, depth=0.1
+            )
+            o3d_vis.add_triangle_mesh(&#34;origin&#34;, &#34;origin&#34;, size=1.0)
+        else:
+            sphere_tf = np.eye(4)
+            sphere_tf[0, 3] = 0.01 * i
+            o3d_vis.update_triangle_mesh(&#34;sphere&#34;, sphere_tf)
+
+            box_tf = np.eye(4)
+            box_tf[1, 3] = -0.01 * i
+            o3d_vis.update_triangle_mesh(&#34;box&#34;, box_tf)
+        o3d_vis.render(curr_view_ctrl_info=view_ctrl_info)
+        time.sleep(0.1)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer"><code class="flex name class">
+<span>class <span class="ident">o3dVisualizer</span></span>
+<span>(</span><span>view_ctrl_info: Dict | None = None, save_path: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class o3dVisualizer:
+    &#34;&#34;&#34;open3d visualizer&#34;&#34;&#34;
+
+    def __init__(
+        self, view_ctrl_info: Optional[Dict] = None, save_path: Optional[str] = None
+    ) -&gt; None:
+        &#34;&#34;&#34;initialize o3d visualizer
+
+        Args:
+            view_ctrl_info (dict): view control info containing front, lookat, up, zoom
+            save_path (_type_, optional): _description_. Defaults to None.
+        &#34;&#34;&#34;
+        self.view_ctrl_info = view_ctrl_info
+        self.save_path = save_path
+        self.visualizer = o3d.visualization.Visualizer()
+        self.vis_dict: Dict[str, o3d.geometry.PointCloud] = {}
+        self.mesh_vertices: Dict[str, np.ndarray] = {}
+        self.is_first = True
+        self.internal_clock = 0
+        if save_path is not None:
+            os.system(f&#34;mkdir -p {save_path}&#34;)
+
+    def start(self) -&gt; None:
+        &#34;&#34;&#34;start the visualizer&#34;&#34;&#34;
+        self.visualizer.create_window()
+
+    def update_pcd(self, mesh: o3d.geometry.PointCloud, mesh_name: str) -&gt; None:
+        &#34;&#34;&#34;update point cloud&#34;&#34;&#34;
+        if mesh_name not in self.vis_dict.keys():
+            self.vis_dict[mesh_name] = o3d.geometry.PointCloud()
+            self.vis_dict[mesh_name].points = mesh.points
+            self.vis_dict[mesh_name].colors = mesh.colors
+            self.visualizer.add_geometry(self.vis_dict[mesh_name])
+        else:
+            self.vis_dict[mesh_name].points = mesh.points
+            self.vis_dict[mesh_name].colors = mesh.colors
+
+    def add_triangle_mesh(
+        self,
+        type: str,
+        mesh_name: str,
+        color: Optional[np.ndarray] = None,
+        radius: float = 0.1,
+        width: float = 0.1,
+        height: float = 0.1,
+        depth: float = 0.1,
+        size: float = 0.1,
+    ) -&gt; None:
+        &#34;&#34;&#34;add triangle mesh to the visualizer&#34;&#34;&#34;
+        if type == &#34;sphere&#34;:
+            mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius)
+        elif type == &#34;box&#34;:
+            mesh = o3d.geometry.TriangleMesh.create_box(
+                width=width, height=height, depth=depth
+            )
+        elif type == &#34;origin&#34;:
+            mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=size)
+        else:
+            raise NotImplementedError
+        if color is not None:
+            mesh.paint_uniform_color(color)
+        self.vis_dict[mesh_name] = mesh
+        self.mesh_vertices[mesh_name] = np.array(mesh.vertices).copy()
+        self.visualizer.add_geometry(self.vis_dict[mesh_name])
+
+    def update_triangle_mesh(self, mesh_name: str, tf: np.ndarray) -&gt; None:
+        &#34;&#34;&#34;update triangle mesh&#34;&#34;&#34;
+        tf_vertices = self.mesh_vertices[mesh_name] @ tf[:3, :3].T + tf[:3, 3]
+        self.vis_dict[mesh_name].vertices = o3d.utility.Vector3dVector(tf_vertices)
+
+    def update_custom_mesh(
+        self, mesh: o3d.geometry.TriangleMesh, mesh_name: str
+    ) -&gt; None:
+        &#34;&#34;&#34;update custom mesh&#34;&#34;&#34;
+        if mesh_name not in self.vis_dict.keys():
+            self.vis_dict[mesh_name] = copy.deepcopy(mesh)
+            self.visualizer.add_geometry(self.vis_dict[mesh_name])
+        else:
+            self.visualizer.remove_geometry(self.vis_dict[mesh_name], False)
+            del self.vis_dict[mesh_name]
+            self.vis_dict[mesh_name] = copy.deepcopy(mesh)
+            self.visualizer.add_geometry(self.vis_dict[mesh_name])
+        self.visualizer.update_geometry(self.vis_dict[mesh_name])
+
+    def render(
+        self,
+        render_names: Optional[List[str]] = None,
+        save_name: Optional[str] = None,
+        curr_view_ctrl_info: Optional[Dict] = None,
+    ) -&gt; np.ndarray:
+        &#34;&#34;&#34;render the scene&#34;&#34;&#34;
+        if self.view_ctrl_info is not None and curr_view_ctrl_info is None:
+            view_control = self.visualizer.get_view_control()
+            view_control.set_front(self.view_ctrl_info[&#34;front&#34;])
+            view_control.set_lookat(self.view_ctrl_info[&#34;lookat&#34;])
+            view_control.set_up(self.view_ctrl_info[&#34;up&#34;])
+            view_control.set_zoom(self.view_ctrl_info[&#34;zoom&#34;])
+        elif curr_view_ctrl_info is not None:
+            view_control = self.visualizer.get_view_control()
+            view_control.set_front(curr_view_ctrl_info[&#34;front&#34;])
+            view_control.set_lookat(curr_view_ctrl_info[&#34;lookat&#34;])
+            view_control.set_up(curr_view_ctrl_info[&#34;up&#34;])
+            view_control.set_zoom(curr_view_ctrl_info[&#34;zoom&#34;])
+        if render_names is None:
+            for mesh_name in self.vis_dict.keys():
+                self.visualizer.update_geometry(self.vis_dict[mesh_name])
+        else:
+            for mesh_name in self.vis_dict.keys():
+                if mesh_name in render_names:
+                    self.visualizer.update_geometry(self.vis_dict[mesh_name])
+                else:
+                    self.visualizer.remove_geometry(self.vis_dict[mesh_name], False)
+        self.visualizer.poll_events()
+        self.visualizer.update_renderer()
+        # self.visualizer.run()
+
+        img = None
+        if self.save_path is not None:
+            if save_name is None:
+                save_fn = f&#34;{self.save_path}/{self.internal_clock}.png&#34;
+            else:
+                save_fn = f&#34;{self.save_path}/{save_name}.png&#34;
+            self.visualizer.capture_screen_image(save_fn)
+            img = cv2.imread(save_fn)
+            self.internal_clock += 1
+
+        # add back
+        if render_names is not None:
+            for mesh_name in self.vis_dict.keys():
+                if mesh_name not in render_names:
+                    self.visualizer.add_geometry(self.vis_dict[mesh_name])
+
+        return img
+
+    def close(self) -&gt; None:
+        &#34;&#34;&#34;close the visualizer&#34;&#34;&#34;
+        self.visualizer.destroy_window()</code></pre>
+</details>
+<div class="desc"><p>open3d visualizer</p>
+<p>initialize o3d visualizer</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>view_ctrl_info</code></strong> :&ensp;<code>dict</code></dt>
+<dd>view control info containing front, lookat, up, zoom</dd>
+<dt><strong><code>save_path</code></strong> :&ensp;<code>_type_</code>, optional</dt>
+<dd><em>description</em>. Defaults to None.</dd>
+</dl></div>
+<h3>Methods</h3>
+<dl>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.add_triangle_mesh"><code class="name flex">
+<span>def <span class="ident">add_triangle_mesh</span></span>(<span>self,<br>type: str,<br>mesh_name: str,<br>color: numpy.ndarray | None = None,<br>radius: float = 0.1,<br>width: float = 0.1,<br>height: float = 0.1,<br>depth: float = 0.1,<br>size: float = 0.1) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_triangle_mesh(
+    self,
+    type: str,
+    mesh_name: str,
+    color: Optional[np.ndarray] = None,
+    radius: float = 0.1,
+    width: float = 0.1,
+    height: float = 0.1,
+    depth: float = 0.1,
+    size: float = 0.1,
+) -&gt; None:
+    &#34;&#34;&#34;add triangle mesh to the visualizer&#34;&#34;&#34;
+    if type == &#34;sphere&#34;:
+        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius)
+    elif type == &#34;box&#34;:
+        mesh = o3d.geometry.TriangleMesh.create_box(
+            width=width, height=height, depth=depth
+        )
+    elif type == &#34;origin&#34;:
+        mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=size)
+    else:
+        raise NotImplementedError
+    if color is not None:
+        mesh.paint_uniform_color(color)
+    self.vis_dict[mesh_name] = mesh
+    self.mesh_vertices[mesh_name] = np.array(mesh.vertices).copy()
+    self.visualizer.add_geometry(self.vis_dict[mesh_name])</code></pre>
+</details>
+<div class="desc"><p>add triangle mesh to the visualizer</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.close"><code class="name flex">
+<span>def <span class="ident">close</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def close(self) -&gt; None:
+    &#34;&#34;&#34;close the visualizer&#34;&#34;&#34;
+    self.visualizer.destroy_window()</code></pre>
+</details>
+<div class="desc"><p>close the visualizer</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.render"><code class="name flex">
+<span>def <span class="ident">render</span></span>(<span>self,<br>render_names: List[str] | None = None,<br>save_name: str | None = None,<br>curr_view_ctrl_info: Dict | None = None) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def render(
+    self,
+    render_names: Optional[List[str]] = None,
+    save_name: Optional[str] = None,
+    curr_view_ctrl_info: Optional[Dict] = None,
+) -&gt; np.ndarray:
+    &#34;&#34;&#34;render the scene&#34;&#34;&#34;
+    if self.view_ctrl_info is not None and curr_view_ctrl_info is None:
+        view_control = self.visualizer.get_view_control()
+        view_control.set_front(self.view_ctrl_info[&#34;front&#34;])
+        view_control.set_lookat(self.view_ctrl_info[&#34;lookat&#34;])
+        view_control.set_up(self.view_ctrl_info[&#34;up&#34;])
+        view_control.set_zoom(self.view_ctrl_info[&#34;zoom&#34;])
+    elif curr_view_ctrl_info is not None:
+        view_control = self.visualizer.get_view_control()
+        view_control.set_front(curr_view_ctrl_info[&#34;front&#34;])
+        view_control.set_lookat(curr_view_ctrl_info[&#34;lookat&#34;])
+        view_control.set_up(curr_view_ctrl_info[&#34;up&#34;])
+        view_control.set_zoom(curr_view_ctrl_info[&#34;zoom&#34;])
+    if render_names is None:
+        for mesh_name in self.vis_dict.keys():
+            self.visualizer.update_geometry(self.vis_dict[mesh_name])
+    else:
+        for mesh_name in self.vis_dict.keys():
+            if mesh_name in render_names:
+                self.visualizer.update_geometry(self.vis_dict[mesh_name])
+            else:
+                self.visualizer.remove_geometry(self.vis_dict[mesh_name], False)
+    self.visualizer.poll_events()
+    self.visualizer.update_renderer()
+    # self.visualizer.run()
+
+    img = None
+    if self.save_path is not None:
+        if save_name is None:
+            save_fn = f&#34;{self.save_path}/{self.internal_clock}.png&#34;
+        else:
+            save_fn = f&#34;{self.save_path}/{save_name}.png&#34;
+        self.visualizer.capture_screen_image(save_fn)
+        img = cv2.imread(save_fn)
+        self.internal_clock += 1
+
+    # add back
+    if render_names is not None:
+        for mesh_name in self.vis_dict.keys():
+            if mesh_name not in render_names:
+                self.visualizer.add_geometry(self.vis_dict[mesh_name])
+
+    return img</code></pre>
+</details>
+<div class="desc"><p>render the scene</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.start"><code class="name flex">
+<span>def <span class="ident">start</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def start(self) -&gt; None:
+    &#34;&#34;&#34;start the visualizer&#34;&#34;&#34;
+    self.visualizer.create_window()</code></pre>
+</details>
+<div class="desc"><p>start the visualizer</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.update_custom_mesh"><code class="name flex">
+<span>def <span class="ident">update_custom_mesh</span></span>(<span>self, mesh: open3d.cpu.pybind.geometry.TriangleMesh, mesh_name: str) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_custom_mesh(
+    self, mesh: o3d.geometry.TriangleMesh, mesh_name: str
+) -&gt; None:
+    &#34;&#34;&#34;update custom mesh&#34;&#34;&#34;
+    if mesh_name not in self.vis_dict.keys():
+        self.vis_dict[mesh_name] = copy.deepcopy(mesh)
+        self.visualizer.add_geometry(self.vis_dict[mesh_name])
+    else:
+        self.visualizer.remove_geometry(self.vis_dict[mesh_name], False)
+        del self.vis_dict[mesh_name]
+        self.vis_dict[mesh_name] = copy.deepcopy(mesh)
+        self.visualizer.add_geometry(self.vis_dict[mesh_name])
+    self.visualizer.update_geometry(self.vis_dict[mesh_name])</code></pre>
+</details>
+<div class="desc"><p>update custom mesh</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.update_pcd"><code class="name flex">
+<span>def <span class="ident">update_pcd</span></span>(<span>self, mesh: open3d.cpu.pybind.geometry.PointCloud, mesh_name: str) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_pcd(self, mesh: o3d.geometry.PointCloud, mesh_name: str) -&gt; None:
+    &#34;&#34;&#34;update point cloud&#34;&#34;&#34;
+    if mesh_name not in self.vis_dict.keys():
+        self.vis_dict[mesh_name] = o3d.geometry.PointCloud()
+        self.vis_dict[mesh_name].points = mesh.points
+        self.vis_dict[mesh_name].colors = mesh.colors
+        self.visualizer.add_geometry(self.vis_dict[mesh_name])
+    else:
+        self.vis_dict[mesh_name].points = mesh.points
+        self.vis_dict[mesh_name].colors = mesh.colors</code></pre>
+</details>
+<div class="desc"><p>update point cloud</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.o3dVisualizer.update_triangle_mesh"><code class="name flex">
+<span>def <span class="ident">update_triangle_mesh</span></span>(<span>self, mesh_name: str, tf: numpy.ndarray) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_triangle_mesh(self, mesh_name: str, tf: np.ndarray) -&gt; None:
+    &#34;&#34;&#34;update triangle mesh&#34;&#34;&#34;
+    tf_vertices = self.mesh_vertices[mesh_name] @ tf[:3, :3].T + tf[:3, 3]
+    self.vis_dict[mesh_name].vertices = o3d.utility.Vector3dVector(tf_vertices)</code></pre>
+</details>
+<div class="desc"><p>update triangle mesh</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="yixuan_utilities" href="index.html">yixuan_utilities</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="yixuan_utilities.draw_utils.center_crop" href="#yixuan_utilities.draw_utils.center_crop">center_crop</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.np2o3d" href="#yixuan_utilities.draw_utils.np2o3d">np2o3d</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.resize_to_height" href="#yixuan_utilities.draw_utils.resize_to_height">resize_to_height</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.test_o3d_vis" href="#yixuan_utilities.draw_utils.test_o3d_vis">test_o3d_vis</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="yixuan_utilities.draw_utils.o3dVisualizer" href="#yixuan_utilities.draw_utils.o3dVisualizer">o3dVisualizer</a></code></h4>
+<ul class="">
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.add_triangle_mesh" href="#yixuan_utilities.draw_utils.o3dVisualizer.add_triangle_mesh">add_triangle_mesh</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.close" href="#yixuan_utilities.draw_utils.o3dVisualizer.close">close</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.render" href="#yixuan_utilities.draw_utils.o3dVisualizer.render">render</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.start" href="#yixuan_utilities.draw_utils.o3dVisualizer.start">start</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.update_custom_mesh" href="#yixuan_utilities.draw_utils.o3dVisualizer.update_custom_mesh">update_custom_mesh</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.update_pcd" href="#yixuan_utilities.draw_utils.o3dVisualizer.update_pcd">update_pcd</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.o3dVisualizer.update_triangle_mesh" href="#yixuan_utilities.draw_utils.o3dVisualizer.update_triangle_mesh">update_triangle_mesh</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.5</a>.</p>
+</footer>
+</body>
+</html>
