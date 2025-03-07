@@ -20,9 +20,13 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Install pdoc3 (and any other dependencies if needed)
-      - name: Install pdoc3
-        run: pip install pdoc3
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          environment-file: conda_env.yaml
+          activate-environment: utils
+          use-mamba: true
 
       # Generate documentation using pdoc3
       - name: Generate Documentation
