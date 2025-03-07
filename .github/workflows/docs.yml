@@ -35,7 +35,7 @@ jobs:
           mkdir -p docs
           # Replace "your_module" with your package or module name
           cd src/
-          pdoc --html --force --output-dir ../docs yixuan_utilities
+          conda run -n utils pdoc --html --force --output-dir ../docs yixuan_utilities
 
       # (Optional) Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
