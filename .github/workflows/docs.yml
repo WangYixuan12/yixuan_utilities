@@ -1,39 +1,42 @@
-name: Generate Documentation
+name: Generate pdoc Documentation
 
 on:
   push:
-    branches: [ main ]  # Adjust branch as needed
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build-docs:
+  generate-docs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository so the workflow has access to your code
+      # Checkout the repository to access your code
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Set up Python and install dependencies
+      # Set up the Python environment
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Install dependencies (Sphinx and any project dependencies)
-      - name: Install dependencies
-        run: |
-          pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints
+      # Install pdoc3 (and any other dependencies if needed)
+      - name: Install pdoc3
+        run: pip install pdoc3
 
-      # Generate the documentation using Sphinx
+      # Generate documentation using pdoc3
       - name: Generate Documentation
-        working-directory: docs
         run: |
-          make html
+          # Create the output directory if it doesn't exist
+          mkdir -p docs
+          # Replace "your_module" with your package or module name
+          cd src/
+          pdoc --html --force --output-dir ../docs yixuan_utilities
 
       # (Optional) Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         if: success()
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          publish_dir: docs/_build/html
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs
