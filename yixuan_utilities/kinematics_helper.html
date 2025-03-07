@@ -245,7 +245,7 @@ el.replaceWith(d);
 <dl>
 <dt id="yixuan_utilities.kinematics_helper.KinHelper"><code class="flex name class">
 <span>class <span class="ident">KinHelper</span></span>
-<span>(</span><span>robot_name: str = 'trossen_vx300s_tactile_thin')</span>
+<span>(</span><span>robot_name: str = 'trossen_vx300s')</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -255,7 +255,7 @@ el.replaceWith(d);
 <pre><code class="python">class KinHelper:
     &#34;&#34;&#34;Helper class for kinematics-related functions&#34;&#34;&#34;
 
-    def __init__(self, robot_name: str = &#34;trossen_vx300s_tactile_thin&#34;):
+    def __init__(self, robot_name: str = &#34;trossen_vx300s&#34;):
         # load robot
         current_dir = Path(__file__).parent
         package_dir = (current_dir / &#34;assets&#34;).resolve()
@@ -504,6 +504,39 @@ el.replaceWith(d);
         #     print(&#34;ik rot diff:&#34;, rot_diff)
         #     logger.warning(&#34;ik pose diff or rot diff too large. Return initial qpos.&#34;)
         #     return initial_qpos
+        return qpos[0]
+
+    def compute_ik_from_mat(
+        self,
+        initial_qpos: np.ndarray,
+        tf_mat: np.ndarray,
+        damp: float = 1e-1,
+    ) -&gt; np.ndarray:
+        &#34;&#34;&#34;Compute IK given initial joint pos and target pose in matrix form&#34;&#34;&#34;
+        pose = sapien.Pose.from_transformation_matrix(tf_mat)
+        if &#34;trossen&#34; in self.robot_name:
+            active_qmask = np.array([True, True, True, True, True, True, False, False])
+        elif &#34;panda&#34; in self.robot_name:
+            active_qmask = np.array(
+                [True, True, True, True, True, True, True, True, True]
+            )
+        qpos = self.robot_model.compute_inverse_kinematics(
+            link_index=self.sapien_eef_idx,
+            pose=pose,
+            initial_qpos=initial_qpos,
+            active_qmask=active_qmask,
+            eps=1e-3,
+            damp=damp,
+        )
+        # verify ik
+        # fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
+        # pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
+        # rot_diff = np.linalg.norm(fk_pose[:3, :3] - tf_mat[:3, :3])
+        # if pose_diff &gt; 0.01 or rot_diff &gt; 0.01:
+        #     print(&#34;ik pose diff:&#34;, pose_diff)
+        #     print(&#34;ik rot diff:&#34;, rot_diff)
+        #     logger.warning(&#34;ik pose diff or rot diff too large. Return initial qpos.&#34;)
+        #     return initial_qpos
         return qpos[0]</code></pre>
 </details>
 <div class="desc"><p>Helper class for kinematics-related functions</p></div>
@@ -622,6 +655,49 @@ el.replaceWith(d);
     return qpos[0]</code></pre>
 </details>
 <div class="desc"><p>Compute inverse kinematics given initial joint pos and target pose</p></div>
+</dd>
+<dt id="yixuan_utilities.kinematics_helper.KinHelper.compute_ik_from_mat"><code class="name flex">
+<span>def <span class="ident">compute_ik_from_mat</span></span>(<span>self, initial_qpos: numpy.ndarray, tf_mat: numpy.ndarray, damp: float = 0.1) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compute_ik_from_mat(
+    self,
+    initial_qpos: np.ndarray,
+    tf_mat: np.ndarray,
+    damp: float = 1e-1,
+) -&gt; np.ndarray:
+    &#34;&#34;&#34;Compute IK given initial joint pos and target pose in matrix form&#34;&#34;&#34;
+    pose = sapien.Pose.from_transformation_matrix(tf_mat)
+    if &#34;trossen&#34; in self.robot_name:
+        active_qmask = np.array([True, True, True, True, True, True, False, False])
+    elif &#34;panda&#34; in self.robot_name:
+        active_qmask = np.array(
+            [True, True, True, True, True, True, True, True, True]
+        )
+    qpos = self.robot_model.compute_inverse_kinematics(
+        link_index=self.sapien_eef_idx,
+        pose=pose,
+        initial_qpos=initial_qpos,
+        active_qmask=active_qmask,
+        eps=1e-3,
+        damp=damp,
+    )
+    # verify ik
+    # fk_pose = self.compute_fk_from_link_idx(qpos[0], [self.sapien_eef_idx])[0]
+    # pose_diff = np.linalg.norm(fk_pose[:3, 3] - tf_mat[:3, 3])
+    # rot_diff = np.linalg.norm(fk_pose[:3, :3] - tf_mat[:3, :3])
+    # if pose_diff &gt; 0.01 or rot_diff &gt; 0.01:
+    #     print(&#34;ik pose diff:&#34;, pose_diff)
+    #     print(&#34;ik rot diff:&#34;, rot_diff)
+    #     logger.warning(&#34;ik pose diff or rot diff too large. Return initial qpos.&#34;)
+    #     return initial_qpos
+    return qpos[0]</code></pre>
+</details>
+<div class="desc"><p>Compute IK given initial joint pos and target pose in matrix form</p></div>
 </dd>
 <dt id="yixuan_utilities.kinematics_helper.KinHelper.compute_robot_meshes"><code class="name flex">
 <span>def <span class="ident">compute_robot_meshes</span></span>(<span>self, qpos: numpy.ndarray, link_names: list[str] | None = None) ‑> list[open3d.cpu.pybind.geometry.TriangleMesh]</span>
@@ -745,6 +821,7 @@ el.replaceWith(d);
 <li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_fk_from_link_idx" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_fk_from_link_idx">compute_fk_from_link_idx</a></code></li>
 <li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_fk_from_link_names" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_fk_from_link_names">compute_fk_from_link_names</a></code></li>
 <li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_ik" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_ik">compute_ik</a></code></li>
+<li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_ik_from_mat" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_ik_from_mat">compute_ik_from_mat</a></code></li>
 <li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_robot_meshes" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_robot_meshes">compute_robot_meshes</a></code></li>
 <li><code><a title="yixuan_utilities.kinematics_helper.KinHelper.compute_robot_pcd" href="#yixuan_utilities.kinematics_helper.KinHelper.compute_robot_pcd">compute_robot_pcd</a></code></li>
 </ul>
