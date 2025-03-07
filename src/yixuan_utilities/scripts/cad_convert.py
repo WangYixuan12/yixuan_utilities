@@ -2,12 +2,12 @@ import os
 from pathlib import Path
 
 import trimesh
-import urchin
+import urdfpy
 
 current_dir = Path(__file__).parent
 package_dir = (current_dir / ".." / "assets").resolve()
 urdf_path = package_dir / "robot" / "panda" / "panda.urdf"
-urdf_robot = urchin.URDF.load(f"{urdf_path}")
+urdf_robot = urdfpy.URDF.load(f"{urdf_path}")
 
 # load meshes and offsets from urdf_robot
 meshes = {}
