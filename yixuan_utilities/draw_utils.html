@@ -44,6 +44,221 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="yixuan_utilities.draw_utils.aggr_point_cloud_from_data"><code class="name flex">
+<span>def <span class="ident">aggr_point_cloud_from_data</span></span>(<span>colors: numpy.ndarray,<br>depths: numpy.ndarray,<br>Ks: numpy.ndarray,<br>poses: numpy.ndarray,<br>downsample: bool = True,<br>downsample_r: float = 0.01,<br>masks: numpy.ndarray = None,<br>boundaries: Dict | None = None,<br>out_o3d: bool = True,<br>color_fmt: <a title="yixuan_utilities.draw_utils.ImgEncoding" href="#yixuan_utilities.draw_utils.ImgEncoding">ImgEncoding</a> = ImgEncoding.RGB_UINT8,<br>depth_fmt: <a title="yixuan_utilities.draw_utils.ImgEncoding" href="#yixuan_utilities.draw_utils.ImgEncoding">ImgEncoding</a> = ImgEncoding.DEPTH_FLOAT,<br>pose_fmt: <a title="yixuan_utilities.draw_utils.ExtriConvention" href="#yixuan_utilities.draw_utils.ExtriConvention">ExtriConvention</a> = ExtriConvention.WORLD_IN_CAM) ‑> Tuple[numpy.ndarray, numpy.ndarray]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def aggr_point_cloud_from_data(
+    colors: np.ndarray,
+    depths: np.ndarray,
+    Ks: np.ndarray,
+    poses: np.ndarray,
+    downsample: bool = True,
+    downsample_r: float = 0.01,
+    masks: np.ndarray = None,
+    boundaries: Optional[Dict] = None,
+    out_o3d: bool = True,
+    #    excluded_pts=None,
+    #    exclude_threshold=0.01,):
+    color_fmt: ImgEncoding = ImgEncoding.RGB_UINT8,
+    depth_fmt: ImgEncoding = ImgEncoding.DEPTH_FLOAT,
+    pose_fmt: ExtriConvention = ExtriConvention.WORLD_IN_CAM,
+) -&gt; Tuple[np.ndarray, np.ndarray]:
+    &#34;&#34;&#34;Aggregate point cloud from multi-view RGBD obs&#34;&#34;&#34;
+    # colors: [N, H, W, 3] numpy array in uint8
+    # depths: [N, H, W] numpy array in meters
+    # Ks: [N, 3, 3] numpy array
+    # poses: [N, 4, 4] numpy array
+    # masks: [N, H, W] numpy array in bool
+    N, H, W, _ = colors.shape
+    if color_fmt == ImgEncoding.RGB_UINT8:
+        colors = colors / 255.0
+    elif color_fmt == ImgEncoding.BGR_UINT8:
+        colors = colors[..., ::-1] / 255.0
+    if depth_fmt == ImgEncoding.DEPTH_UINT16:
+        depths = depths / 1000.0
+    start = 0
+    end = N
+    step = 1
+    pcds_ls = []
+    pcd_colors = []
+    # TODO: batch it
+    for i in range(start, end, step):
+        depth = depths[i]
+        color = colors[i]
+        K = Ks[i]
+        cam_param = [K[0, 0], K[1, 1], K[0, 2], K[1, 2]]  # fx, fy, cx, cy
+        if masks is None:
+            mask = depth &gt; 0
+        else:
+            mask = masks[i] &amp; (depth &gt; 0)
+        # mask = np.ones_like(depth, dtype=bool)
+
+        pcd = depth2fgpcd(depth, mask, cam_param)
+
+        pose = poses[i]
+        if pose_fmt == ExtriConvention.WORLD_IN_CAM:
+            try:
+                pose = np.linalg.inv(pose)
+            except np.linalg.LinAlgError:
+                print(&#34;singular matrix&#34;)
+                pose = np.linalg.pinv(pose)
+
+        trans_pcd = pose @ np.concatenate([pcd.T, np.ones((1, pcd.shape[0]))], axis=0)
+        trans_pcd = trans_pcd[:3, :].T
+
+        color = color[mask]
+
+        pcds_ls.append(trans_pcd)
+        pcd_colors.append(color)
+
+    pcds = np.concatenate(pcds_ls, axis=0)
+    pcd_colors = np.concatenate(pcd_colors, axis=0)
+
+    # post process 1: remove points outside of boundaries
+    if boundaries is not None:
+        x_lower = boundaries[&#34;x_lower&#34;]
+        x_upper = boundaries[&#34;x_upper&#34;]
+        y_lower = boundaries[&#34;y_lower&#34;]
+        y_upper = boundaries[&#34;y_upper&#34;]
+        z_lower = boundaries[&#34;z_lower&#34;]
+        z_upper = boundaries[&#34;z_upper&#34;]
+
+        pcd_mask = (
+            (pcds[:, 0] &gt; x_lower)
+            &amp; (pcds[:, 0] &lt; x_upper)
+            &amp; (pcds[:, 1] &gt; y_lower)
+            &amp; (pcds[:, 1] &lt; y_upper)
+            &amp; (pcds[:, 2] &gt; z_lower)
+            &amp; (pcds[:, 2] &lt; z_upper)
+        )
+
+        pcds = pcds[pcd_mask]
+        pcd_colors = pcd_colors[pcd_mask]
+
+    # post process 2: downsample
+    if downsample:
+        pcds, pcd_colors = voxel_downsample_numpy(pcds, downsample_r, pcd_colors)
+
+    # post process 3: return o3d point cloud if out_o3d is True
+    if out_o3d:
+        aggr_pcd = np2o3d(pcds, pcd_colors)
+        return aggr_pcd
+    else:
+        return pcds, pcd_colors</code></pre>
+</details>
+<div class="desc"><p>Aggregate point cloud from multi-view RGBD obs</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.aggr_point_cloud_tensor"><code class="name flex">
+<span>def <span class="ident">aggr_point_cloud_tensor</span></span>(<span>colors: numpy.ndarray,<br>depths: numpy.ndarray,<br>Ks: numpy.ndarray,<br>poses: numpy.ndarray,<br>masks: numpy.ndarray = None,<br>downsample: bool = True,<br>downsample_r: float = 0.01,<br>boundaries: Dict | None = None,<br>color_fmt: <a title="yixuan_utilities.draw_utils.ImgEncoding" href="#yixuan_utilities.draw_utils.ImgEncoding">ImgEncoding</a> = ImgEncoding.RGB_UINT8,<br>depth_fmt: <a title="yixuan_utilities.draw_utils.ImgEncoding" href="#yixuan_utilities.draw_utils.ImgEncoding">ImgEncoding</a> = ImgEncoding.DEPTH_FLOAT,<br>pose_fmt: <a title="yixuan_utilities.draw_utils.ExtriConvention" href="#yixuan_utilities.draw_utils.ExtriConvention">ExtriConvention</a> = ExtriConvention.WORLD_IN_CAM) ‑> Tuple[numpy.ndarray, numpy.ndarray]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def aggr_point_cloud_tensor(
+    colors: np.ndarray,
+    depths: np.ndarray,
+    Ks: np.ndarray,
+    poses: np.ndarray,
+    masks: np.ndarray = None,
+    downsample: bool = True,
+    downsample_r: float = 0.01,
+    boundaries: Optional[Dict] = None,
+    color_fmt: ImgEncoding = ImgEncoding.RGB_UINT8,
+    depth_fmt: ImgEncoding = ImgEncoding.DEPTH_FLOAT,
+    pose_fmt: ExtriConvention = ExtriConvention.WORLD_IN_CAM,
+) -&gt; Tuple[np.ndarray, np.ndarray]:
+    &#34;&#34;&#34;Aggregate point cloud from multi-view RGBD obs&#34;&#34;&#34;
+    # colors: [N, H, W, 3] numpy array in uint8
+    # depths: [N, H, W] numpy array in meters
+    # Ks: [N, 3, 3] numpy array
+    # poses: [N, 4, 4] numpy array
+    N, H, W, _ = colors.shape
+    if color_fmt == ImgEncoding.RGB_UINT8:
+        colors = colors / 255.0
+    elif color_fmt == ImgEncoding.BGR_UINT8:
+        colors = colors[..., ::-1] / 255.0
+    if depth_fmt == ImgEncoding.DEPTH_UINT16:
+        depths = depths / 1000.0
+
+    # convert to torch tensor
+    device = &#34;cuda&#34;
+    colors_tensor = torch.from_numpy(colors).to(dtype=torch.float32, device=device)
+    depths_tensor = torch.from_numpy(depths).to(dtype=torch.float32, device=device)
+    masks_tensor = torch.from_numpy(masks).to(dtype=torch.bool, device=device)
+    Ks_tensor = torch.from_numpy(Ks).to(dtype=torch.float32, device=device)
+    poses_tensor = torch.from_numpy(poses).to(dtype=torch.float32, device=device)
+
+    # map to camera frame
+    pcd_tensor = torch.zeros((N, H, W, 3), dtype=torch.float32, device=device)
+    pos_y, pos_x = torch.meshgrid([torch.arange(H), torch.arange(W)])  # (H, W), (H, W)
+    pos_y = pos_y.to(device)
+    pos_x = pos_x.to(device)
+    pos_x = torch.tile(pos_x[None], (N, 1, 1))  # [N, H, W]
+    pos_y = torch.tile(pos_y[None], (N, 1, 1))  # [N, H, W]
+    pcd_tensor[..., 0] = (
+        (pos_x - Ks_tensor[:, 0:1, 2:3]) * depths_tensor / Ks_tensor[:, 0:1, 0:1]
+    )
+    pcd_tensor[..., 1] = (
+        (pos_y - Ks_tensor[:, 1:2, 2:3]) * depths_tensor / Ks_tensor[:, 1:2, 1:2]
+    )
+    pcd_tensor[..., 2] = depths_tensor
+
+    # map to world frame
+    pcd_tensor = pcd_tensor.reshape(N, H * W, 3)
+    pcd_tensor = torch.cat(
+        [pcd_tensor, torch.ones((N, H * W, 1), dtype=torch.float32, device=device)],
+        dim=-1,
+    )  # (N, H*W, 4)
+    if pose_fmt == ExtriConvention.WORLD_IN_CAM:
+        try:
+            poses_tensor = torch.linalg.inv(poses_tensor)
+        except torch.linalg.LinAlgError:
+            poses_tensor = torch.linalg.pinv(poses_tensor)
+    pcd_tensor = torch.bmm(poses_tensor, pcd_tensor.permute(0, 2, 1))  # (N, 4, H*W)
+    pcd_tensor = pcd_tensor[:, :3].permute(0, 2, 1).reshape(N, H, W, 3)
+
+    # post process 1: mask out
+    pcd_tensor = pcd_tensor[masks_tensor]  # [M, 3]
+    pcd_colors = colors_tensor[masks_tensor]  # [M, 3]
+
+    # post process 2: remove points outside of boundaries
+    if boundaries is not None:
+        x_lower = boundaries[&#34;x_lower&#34;]
+        x_upper = boundaries[&#34;x_upper&#34;]
+        y_lower = boundaries[&#34;y_lower&#34;]
+        y_upper = boundaries[&#34;y_upper&#34;]
+        z_lower = boundaries[&#34;z_lower&#34;]
+        z_upper = boundaries[&#34;z_upper&#34;]
+
+        pcd_mask = (
+            (pcd_tensor[:, 0] &gt; x_lower)
+            &amp; (pcd_tensor[:, 0] &lt; x_upper)
+            &amp; (pcd_tensor[:, 1] &gt; y_lower)
+            &amp; (pcd_tensor[:, 1] &lt; y_upper)
+            &amp; (pcd_tensor[:, 2] &gt; z_lower)
+            &amp; (pcd_tensor[:, 2] &lt; z_upper)
+        )
+
+        pcd_tensor = pcd_tensor[pcd_mask]
+        pcd_colors = pcd_colors[pcd_mask]
+
+    # post process 3: downsample
+    if downsample:
+        pcd_tensor, pcd_colors = voxel_downsample_torch(
+            pcd_tensor, downsample_r, pcd_colors
+        )
+
+    return pcd_tensor.cpu().numpy(), pcd_colors.cpu().numpy()</code></pre>
+</details>
+<div class="desc"><p>Aggregate point cloud from multi-view RGBD obs</p></div>
+</dd>
 <dt id="yixuan_utilities.draw_utils.center_crop"><code class="name flex">
 <span>def <span class="ident">center_crop</span></span>(<span>img: numpy.ndarray, crop_size: tuple[int, int]) ‑> numpy.ndarray</span>
 </code></dt>
@@ -70,6 +285,87 @@ el.replaceWith(d);
     return img[y1 : y1 + crop_h, x1 : x1 + crop_w]</code></pre>
 </details>
 <div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.depth2fgpcd"><code class="name flex">
+<span>def <span class="ident">depth2fgpcd</span></span>(<span>depth: numpy.ndarray,<br>mask: numpy.ndarray,<br>cam_params: List,<br>preserve_zero: bool = False) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def depth2fgpcd(
+    depth: np.ndarray, mask: np.ndarray, cam_params: List, preserve_zero: bool = False
+) -&gt; np.ndarray:
+    &#34;&#34;&#34;Convert depth image to foreground point cloud&#34;&#34;&#34;
+    # depth: (h, w)
+    # fgpcd: (n, 3)
+    # mask: (h, w)
+    h, w = depth.shape
+    if not preserve_zero:
+        mask = np.logical_and(mask, depth &gt; 0)
+    fgpcd = np.zeros((mask.sum(), 3))
+    fx, fy, cx, cy = cam_params
+    pos_x, pos_y = np.meshgrid(np.arange(w), np.arange(h))
+    pos_x = pos_x[mask]
+    pos_y = pos_y[mask]
+    fgpcd[:, 0] = (pos_x - cx) * depth[mask] / fx
+    fgpcd[:, 1] = (pos_y - cy) * depth[mask] / fy
+    fgpcd[:, 2] = depth[mask]
+    return fgpcd</code></pre>
+</details>
+<div class="desc"><p>Convert depth image to foreground point cloud</p></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.depth2fgpcd_tensor"><code class="name flex">
+<span>def <span class="ident">depth2fgpcd_tensor</span></span>(<span>depth: torch.Tensor, cam_params: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def depth2fgpcd_tensor(depth: torch.Tensor, cam_params: torch.Tensor) -&gt; torch.Tensor:
+    &#34;&#34;&#34;Convert depth image to foreground point cloud using PyTorch tensors.
+
+    Args:
+    depth (torch.Tensor): Depth image tensor of shape (b, h, w).
+    cam_params (torch.Tensor): Camera parameters tensor of shape (b, 4).
+
+    Returns:
+    torch.Tensor: Foreground point cloud tensor of shape (b, h*w, 3).
+    &#34;&#34;&#34;
+    b, h, w = depth.shape
+
+    pos_x, pos_y = torch.meshgrid(
+        torch.arange(w, device=depth.device),
+        torch.arange(h, device=depth.device),
+        indexing=&#34;xy&#34;,
+    )
+    pos_x = pos_x.unsqueeze(0).expand(b, -1, -1).reshape(b, h * w)
+    pos_y = pos_y.unsqueeze(0).expand(b, -1, -1).reshape(b, h * w)
+
+    cam_params = cam_params.unsqueeze(-1).unsqueeze(
+        -1
+    )  # Expand cam_params to match the shape of pos_x and pos_y
+
+    fx = cam_params[:, 0]
+    fy = cam_params[:, 1]
+    cx = cam_params[:, 2]
+    cy = cam_params[:, 3]
+
+    fgpcd = torch.zeros((b, h * w, 3), device=depth.device, dtype=torch.float32)
+    fgpcd[..., 0] = (pos_x - cx) * depth.reshape(b, h * w) / fx
+    fgpcd[..., 1] = (pos_y - cy) * depth.reshape(b, h * w) / fy
+    fgpcd[..., 2] = depth.reshape(b, h * w)
+
+    return fgpcd</code></pre>
+</details>
+<div class="desc"><p>Convert depth image to foreground point cloud using PyTorch tensors.</p>
+<p>Args:
+depth (torch.Tensor): Depth image tensor of shape (b, h, w).
+cam_params (torch.Tensor): Camera parameters tensor of shape (b, 4).</p>
+<p>Returns:
+torch.Tensor: Foreground point cloud tensor of shape (b, h*w, 3).</p></div>
 </dd>
 <dt id="yixuan_utilities.draw_utils.np2o3d"><code class="name flex">
 <span>def <span class="ident">np2o3d</span></span>(<span>pcd: numpy.ndarray, color: numpy.ndarray | None = None) ‑> open3d.cpu.pybind.geometry.PointCloud</span>
@@ -153,11 +449,184 @@ el.replaceWith(d);
 </details>
 <div class="desc"></div>
 </dd>
+<dt id="yixuan_utilities.draw_utils.voxel_downsample_numpy"><code class="name flex">
+<span>def <span class="ident">voxel_downsample_numpy</span></span>(<span>points: numpy.ndarray,<br>voxel_size: float,<br>points_color: numpy.ndarray | None = None) ‑> Tuple[numpy.ndarray, numpy.ndarray]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def voxel_downsample_numpy(
+    points: np.ndarray, voxel_size: float, points_color: Optional[np.ndarray] = None
+) -&gt; Tuple[np.ndarray, np.ndarray]:
+    # Ensure the points array is in float format for division
+    points = points.astype(np.float32)
+
+    # Compute voxel indices
+    voxel_indices = np.floor(points / voxel_size)
+
+    # Create a unique index for each voxel using its 3D index
+    unique_voxels, indices = np.unique(voxel_indices, return_inverse=True, axis=0)
+
+    # Initialize voxel_points to store the sum of points in each voxel
+    voxel_points = np.zeros((unique_voxels.shape[0], points.shape[1]), dtype=np.float32)
+
+    # Sum points in each voxel
+    np.add.at(voxel_points, indices, points)
+
+    # Count the number of points in each voxel
+    counts = np.zeros((unique_voxels.shape[0], 1), dtype=np.float32)
+    np.add.at(counts, indices, 1)
+
+    # Calculate the centroid
+    centroids = voxel_points / counts
+    if points_color is not None:
+        points_color = points_color.astype(np.float32)
+        voxel_colors = np.zeros(
+            (unique_voxels.shape[0], points_color.shape[1]), dtype=np.float32
+        )
+        np.add.at(voxel_colors, indices, points_color)
+        centroids_color = voxel_colors / counts
+    else:
+        centroids_color = np.array([])
+
+    return centroids, centroids_color</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.voxel_downsample_torch"><code class="name flex">
+<span>def <span class="ident">voxel_downsample_torch</span></span>(<span>points: torch.Tensor,<br>voxel_size: float,<br>points_color: torch.Tensor | None = None) ‑> Tuple[torch.Tensor, torch.Tensor]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def voxel_downsample_torch(
+    points: torch.Tensor, voxel_size: float, points_color: Optional[torch.Tensor] = None
+) -&gt; Tuple[torch.Tensor, torch.Tensor]:
+    # Ensure the points tensor is in float format for division
+    points = points.float()
+
+    # Compute voxel indices
+    voxel_indices = (points / voxel_size).floor()
+
+    # Create a unique index for each voxel using its 3D index
+    unique_voxels, indices = torch.unique(voxel_indices, return_inverse=True, dim=0)
+
+    # Initialize voxel_points to store the sum of points in each voxel
+    voxel_points = torch.zeros(
+        unique_voxels.size(0), points.size(1), dtype=torch.float, device=points.device
+    )
+
+    # Sum points in each voxel
+    voxel_points.index_add_(0, indices, points)
+
+    # Count the number of points in each voxel
+    counts = torch.zeros(
+        unique_voxels.size(0), 1, dtype=torch.float, device=points.device
+    )
+    counts.index_add_(0, indices, torch.ones(points.size(0), 1, device=points.device))
+
+    # Calculate the centroid
+    centroids = voxel_points / counts
+    if points_color is not None:
+        points_color = points_color.float()
+        voxel_colors = torch.zeros(
+            unique_voxels.size(0),
+            points_color.size(1),
+            dtype=torch.float,
+            device=points.device,
+        )
+        voxel_colors.index_add_(0, indices, points_color)
+        centroids_color = voxel_colors / counts
+    else:
+        centroids_color = torch.Tensor()
+
+    return centroids, centroids_color</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
 </dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="yixuan_utilities.draw_utils.ExtriConvention"><code class="flex name class">
+<span>class <span class="ident">ExtriConvention</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ExtriConvention(Enum):
+    &#34;&#34;&#34;Extrinsic convention for camera pose&#34;&#34;&#34;
+
+    CAM_IN_WORLD = &#34;cam_in_world&#34;  # camera pose in world coord
+    WORLD_IN_CAM = &#34;world_in_cam&#34;  # world pose in camera coord</code></pre>
+</details>
+<div class="desc"><p>Extrinsic convention for camera pose</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="yixuan_utilities.draw_utils.ExtriConvention.CAM_IN_WORLD"><code class="name">var <span class="ident">CAM_IN_WORLD</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.ExtriConvention.WORLD_IN_CAM"><code class="name">var <span class="ident">WORLD_IN_CAM</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="yixuan_utilities.draw_utils.ImgEncoding"><code class="flex name class">
+<span>class <span class="ident">ImgEncoding</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ImgEncoding(Enum):
+    &#34;&#34;&#34;Image encoding format&#34;&#34;&#34;
+
+    RGB_UINT8 = &#34;rgb_uint8&#34;
+    BGR_UINT8 = &#34;bgr_uint8&#34;
+    DEPTH_UINT16 = &#34;depth_uint16&#34;
+    DEPTH_FLOAT = &#34;depth_float&#34;</code></pre>
+</details>
+<div class="desc"><p>Image encoding format</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="yixuan_utilities.draw_utils.ImgEncoding.BGR_UINT8"><code class="name">var <span class="ident">BGR_UINT8</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.ImgEncoding.DEPTH_FLOAT"><code class="name">var <span class="ident">DEPTH_FLOAT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.ImgEncoding.DEPTH_UINT16"><code class="name">var <span class="ident">DEPTH_UINT16</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="yixuan_utilities.draw_utils.ImgEncoding.RGB_UINT8"><code class="name">var <span class="ident">RGB_UINT8</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="yixuan_utilities.draw_utils.o3dVisualizer"><code class="flex name class">
 <span>class <span class="ident">o3dVisualizer</span></span>
 <span>(</span><span>view_ctrl_info: Dict | None = None, save_path: str | None = None)</span>
@@ -519,14 +988,36 @@ el.replaceWith(d);
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="yixuan_utilities.draw_utils.aggr_point_cloud_from_data" href="#yixuan_utilities.draw_utils.aggr_point_cloud_from_data">aggr_point_cloud_from_data</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.aggr_point_cloud_tensor" href="#yixuan_utilities.draw_utils.aggr_point_cloud_tensor">aggr_point_cloud_tensor</a></code></li>
 <li><code><a title="yixuan_utilities.draw_utils.center_crop" href="#yixuan_utilities.draw_utils.center_crop">center_crop</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.depth2fgpcd" href="#yixuan_utilities.draw_utils.depth2fgpcd">depth2fgpcd</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.depth2fgpcd_tensor" href="#yixuan_utilities.draw_utils.depth2fgpcd_tensor">depth2fgpcd_tensor</a></code></li>
 <li><code><a title="yixuan_utilities.draw_utils.np2o3d" href="#yixuan_utilities.draw_utils.np2o3d">np2o3d</a></code></li>
 <li><code><a title="yixuan_utilities.draw_utils.resize_to_height" href="#yixuan_utilities.draw_utils.resize_to_height">resize_to_height</a></code></li>
 <li><code><a title="yixuan_utilities.draw_utils.test_o3d_vis" href="#yixuan_utilities.draw_utils.test_o3d_vis">test_o3d_vis</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.voxel_downsample_numpy" href="#yixuan_utilities.draw_utils.voxel_downsample_numpy">voxel_downsample_numpy</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.voxel_downsample_torch" href="#yixuan_utilities.draw_utils.voxel_downsample_torch">voxel_downsample_torch</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
+<li>
+<h4><code><a title="yixuan_utilities.draw_utils.ExtriConvention" href="#yixuan_utilities.draw_utils.ExtriConvention">ExtriConvention</a></code></h4>
+<ul class="">
+<li><code><a title="yixuan_utilities.draw_utils.ExtriConvention.CAM_IN_WORLD" href="#yixuan_utilities.draw_utils.ExtriConvention.CAM_IN_WORLD">CAM_IN_WORLD</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.ExtriConvention.WORLD_IN_CAM" href="#yixuan_utilities.draw_utils.ExtriConvention.WORLD_IN_CAM">WORLD_IN_CAM</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="yixuan_utilities.draw_utils.ImgEncoding" href="#yixuan_utilities.draw_utils.ImgEncoding">ImgEncoding</a></code></h4>
+<ul class="">
+<li><code><a title="yixuan_utilities.draw_utils.ImgEncoding.BGR_UINT8" href="#yixuan_utilities.draw_utils.ImgEncoding.BGR_UINT8">BGR_UINT8</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.ImgEncoding.DEPTH_FLOAT" href="#yixuan_utilities.draw_utils.ImgEncoding.DEPTH_FLOAT">DEPTH_FLOAT</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.ImgEncoding.DEPTH_UINT16" href="#yixuan_utilities.draw_utils.ImgEncoding.DEPTH_UINT16">DEPTH_UINT16</a></code></li>
+<li><code><a title="yixuan_utilities.draw_utils.ImgEncoding.RGB_UINT8" href="#yixuan_utilities.draw_utils.ImgEncoding.RGB_UINT8">RGB_UINT8</a></code></li>
+</ul>
+</li>
 <li>
 <h4><code><a title="yixuan_utilities.draw_utils.o3dVisualizer" href="#yixuan_utilities.draw_utils.o3dVisualizer">o3dVisualizer</a></code></h4>
 <ul class="">
