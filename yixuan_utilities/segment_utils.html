@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>yixuan_utilities.hdf5_utils API documentation</title>
+<title>yixuan_utilities.segment_utils API documentation</title>
 <meta name="description" content="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -33,7 +33,7 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>yixuan_utilities.hdf5_utils</code></h1>
+<h1 class="title">Module <code>yixuan_utilities.segment_utils</code></h1>
 </header>
 <section id="section-intro">
 </section>
@@ -44,97 +44,143 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="yixuan_utilities.hdf5_utils.load_dict_from_hdf5"><code class="name flex">
-<span>def <span class="ident">load_dict_from_hdf5</span></span>(<span>filename: str) ‑> Tuple[dict, h5py._hl.files.File]</span>
+<dt id="yixuan_utilities.segment_utils.label_image"><code class="name flex">
+<span>def <span class="ident">label_image</span></span>(<span>img: numpy.ndarray, predictor: segment_anything.predictor.SamPredictor) ‑> numpy.ndarray</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def load_dict_from_hdf5(filename: str) -&gt; Tuple[dict, h5py.File]:
-    &#34;&#34;&#34;....&#34;&#34;&#34;
-    # with h5py.File(filename, &#39;r&#39;) as h5file:
-    #     return recursively_load_dict_contents_from_group(h5file, &#39;/&#39;)
-    h5file = h5py.File(filename, &#34;r&#34;)
-    return recursively_load_dict_contents_from_group(h5file, &#34;/&#34;), h5file</code></pre>
-</details>
-<div class="desc"><p>....</p></div>
-</dd>
-<dt id="yixuan_utilities.hdf5_utils.recursively_load_dict_contents_from_group"><code class="name flex">
-<span>def <span class="ident">recursively_load_dict_contents_from_group</span></span>(<span>h5file: h5py._hl.files.File, path: str) ‑> dict</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def recursively_load_dict_contents_from_group(h5file: h5py.File, path: str) -&gt; dict:
-    &#34;&#34;&#34;....&#34;&#34;&#34;
-    ans = {}
-    for key, item in h5file[path].items():
-        if isinstance(item, h5py.Dataset):
-            # ans[key] = np.array(item)
-            ans[key] = item
-        elif isinstance(item, h5py.Group):
-            ans[key] = recursively_load_dict_contents_from_group(
-                h5file, path + key + &#34;/&#34;
+<pre><code class="python">def label_image(img: np.ndarray, predictor: SamPredictor) -&gt; np.ndarray:
+    &#34;&#34;&#34;Interactive Image Labeling with SAM
+
+    Label an image with a binary mask using SAM interactively using mouse clicks
+    Left click: add positive point
+    Right click: add negative point
+    Middle click: remove point
+    Implement this function using opencv mouse callback function
+
+    Args:
+        img (np.ndarray): The input image as a numpy array.
+        predictor (SamPredictor): The SAM predictor object.
+
+    Returns:
+        np.ndarray: The binary mask as a numpy array.
+    &#34;&#34;&#34;
+    # Initialize lists to store points and labels
+    points = []
+    labels = []
+    masks = None
+
+    # Process image with predictor
+    predictor.set_image(img)
+
+    # Mouse callback function
+    def mouse_callback(event: int, x: int, y: int, flags: int, param: Any) -&gt; None:
+        nonlocal masks
+        if event == cv2.EVENT_LBUTTONDOWN:  # Left click
+            points.append([x, y])
+            labels.append(1)
+        elif event == cv2.EVENT_RBUTTONDOWN:  # Right click
+            points.append([x, y])
+            labels.append(0)
+        elif event == cv2.EVENT_MBUTTONDOWN:  # Middle click
+            if points:
+                points.pop()
+                labels.pop()
+
+        # Update masks after each click
+        if points:
+            input_points = np.array(points)
+            input_labels = np.array(labels)
+            masks, scores, logits = predictor.predict(
+                point_coords=input_points,
+                point_labels=input_labels,
+                multimask_output=True,
             )
-    return ans</code></pre>
+
+    # Set up OpenCV window and set mouse callback
+    cv2.namedWindow(&#34;Image&#34;)
+    cv2.setMouseCallback(&#34;Image&#34;, mouse_callback)
+
+    while True:
+        # Display the image
+        display_img = img.copy()
+        for point, label in zip(points, labels):
+            color = (0, 255, 0) if label == 1 else (0, 0, 255)
+            cv2.circle(display_img, tuple(point), 5, color, -1)
+
+        # Overlay the mask if available
+        if masks is not None:
+            mask_overlay = (masks[0] * 255).astype(np.uint8)
+            display_img = cv2.addWeighted(
+                display_img, 0.7, cv2.cvtColor(mask_overlay, cv2.COLOR_GRAY2BGR), 0.3, 0
+            )
+
+        cv2.imshow(&#34;Image&#34;, display_img)
+
+        # Break the loop on &#39;q&#39; key press
+        if cv2.waitKey(1) &amp; 0xFF == ord(&#34;q&#34;):
+            break
+
+    cv2.destroyAllWindows()
+
+    # Return the first mask (or handle multiple masks as needed)
+    return masks[0] if masks is not None else None</code></pre>
 </details>
-<div class="desc"><p>....</p></div>
+<div class="desc"><p>Interactive Image Labeling with SAM</p>
+<p>Label an image with a binary mask using SAM interactively using mouse clicks
+Left click: add positive point
+Right click: add negative point
+Middle click: remove point
+Implement this function using opencv mouse callback function</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>img</code></strong> :&ensp;<code>np.ndarray</code></dt>
+<dd>The input image as a numpy array.</dd>
+<dt><strong><code>predictor</code></strong> :&ensp;<code>SamPredictor</code></dt>
+<dd>The SAM predictor object.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>np.ndarray</code></dt>
+<dd>The binary mask as a numpy array.</dd>
+</dl></div>
 </dd>
-<dt id="yixuan_utilities.hdf5_utils.recursively_save_dict_contents_to_group"><code class="name flex">
-<span>def <span class="ident">recursively_save_dict_contents_to_group</span></span>(<span>h5file: h5py._hl.files.File, path: str, dic: dict, config_dict: dict) ‑> None</span>
+<dt id="yixuan_utilities.segment_utils.load_sam"><code class="name flex">
+<span>def <span class="ident">load_sam</span></span>(<span>) ‑> segment_anything.predictor.SamPredictor</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def recursively_save_dict_contents_to_group(
-    h5file: h5py.File, path: str, dic: dict, config_dict: dict
-) -&gt; None:
-    &#34;&#34;&#34;....&#34;&#34;&#34;
-    for key, item in dic.items():
-        if isinstance(item, np.ndarray):
-            # h5file[path + key] = item
-            if key not in config_dict:
-                config_dict[key] = {}
-            dset = h5file.create_dataset(
-                path + key, shape=item.shape, **config_dict[key]
-            )
-            dset[...] = item
-        elif isinstance(item, dict):
-            if key not in config_dict:
-                config_dict[key] = {}
-            recursively_save_dict_contents_to_group(
-                h5file, path + key + &#34;/&#34;, item, config_dict[key]
-            )
-        else:
-            raise ValueError(&#34;Cannot save %s type&#34; % type(item))</code></pre>
+<pre><code class="python">def load_sam() -&gt; SamPredictor:
+    &#34;&#34;&#34;Load the SAM model and create a predictor.
+
+    Returns:
+        SamPredictor: The SAM predictor object.
+    &#34;&#34;&#34;
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    Path(curr_path).mkdir(parents=True, exist_ok=True)
+    sam_checkpoint = f&#34;{curr_path}/ckpts/sam_vit_h_4b8939.pth&#34;
+    remote_sam = &#34;https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&#34;
+    if not os.path.exists(sam_checkpoint):
+        os.system(f&#34;wget {remote_sam} -P {curr_path}/ckpts/&#34;)
+    model_type = &#34;vit_h&#34;
+    device = &#34;cuda&#34;
+    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+    sam.to(device=device)
+    predictor = SamPredictor(sam)
+    return predictor</code></pre>
 </details>
-<div class="desc"><p>....</p></div>
-</dd>
-<dt id="yixuan_utilities.hdf5_utils.save_dict_to_hdf5"><code class="name flex">
-<span>def <span class="ident">save_dict_to_hdf5</span></span>(<span>dic: dict, config_dict: dict, filename: str, attr_dict: dict | None = None) ‑> None</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def save_dict_to_hdf5(
-    dic: dict, config_dict: dict, filename: str, attr_dict: Optional[dict] = None
-) -&gt; None:
-    &#34;&#34;&#34;....&#34;&#34;&#34;
-    with h5py.File(filename, &#34;w&#34;) as h5file:
-        if attr_dict is not None:
-            for key, item in attr_dict.items():
-                h5file.attrs[key] = item
-        recursively_save_dict_contents_to_group(h5file, &#34;/&#34;, dic, config_dict)</code></pre>
-</details>
-<div class="desc"><p>....</p></div>
+<div class="desc"><p>Load the SAM model and create a predictor.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SamPredictor</code></dt>
+<dd>The SAM predictor object.</dd>
+</dl></div>
 </dd>
 </dl>
 </section>
@@ -153,10 +199,8 @@ el.replaceWith(d);
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="yixuan_utilities.hdf5_utils.load_dict_from_hdf5" href="#yixuan_utilities.hdf5_utils.load_dict_from_hdf5">load_dict_from_hdf5</a></code></li>
-<li><code><a title="yixuan_utilities.hdf5_utils.recursively_load_dict_contents_from_group" href="#yixuan_utilities.hdf5_utils.recursively_load_dict_contents_from_group">recursively_load_dict_contents_from_group</a></code></li>
-<li><code><a title="yixuan_utilities.hdf5_utils.recursively_save_dict_contents_to_group" href="#yixuan_utilities.hdf5_utils.recursively_save_dict_contents_to_group">recursively_save_dict_contents_to_group</a></code></li>
-<li><code><a title="yixuan_utilities.hdf5_utils.save_dict_to_hdf5" href="#yixuan_utilities.hdf5_utils.save_dict_to_hdf5">save_dict_to_hdf5</a></code></li>
+<li><code><a title="yixuan_utilities.segment_utils.label_image" href="#yixuan_utilities.segment_utils.label_image">label_image</a></code></li>
+<li><code><a title="yixuan_utilities.segment_utils.load_sam" href="#yixuan_utilities.segment_utils.load_sam">load_sam</a></code></li>
 </ul>
 </li>
 </ul>
