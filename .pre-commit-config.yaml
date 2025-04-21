@@ -3,7 +3,11 @@
 default_language_version:
     python: python3
 
-exclude: '^assets/'
+exclude: |
+  (?x)^(
+    ^assets/|
+    src/yixuan_utilities/sam_test.jpg
+  )$
 repos:
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   # Ruff version.
