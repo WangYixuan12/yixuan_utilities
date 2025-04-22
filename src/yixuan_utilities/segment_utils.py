@@ -1,13 +1,21 @@
 # Import necessary libraries
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import cv2
 import numpy as np
+import torch
+import torch.nn.functional as F
+import torchvision.transforms as T
 from segment_anything import SamPredictor, sam_model_registry
+from XMem.dataset.range_transform import im_normalization
+from XMem.inference.data.mask_mapper import MaskMapper
+from XMem.inference.inference_core import InferenceCore
+from XMem.model.network import XMem
 
 
+@torch.no_grad()
 def label_image(img: np.ndarray, predictor: SamPredictor) -> np.ndarray:
     """Interactive Image Labeling with SAM
 
@@ -106,6 +114,115 @@ def load_sam() -> SamPredictor:
     return predictor
 
 
+def load_XMem() -> Union[InferenceCore, MaskMapper, T.Compose, T.Compose]:
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    Path(curr_path).mkdir(parents=True, exist_ok=True)
+    xmem_ckpt_path = f"{curr_path}/ckpts"
+    xmem_ckpt_name = "XMem.pth"
+    xmem_ckpt = f"{xmem_ckpt_path}/{xmem_ckpt_name}"
+    device = "cuda"
+    if not os.path.exists(xmem_ckpt):
+        print("Downloading XMem model...")
+        os.system(
+            f"wget -P {xmem_ckpt_path} https://github.com/hkchengrex/XMem/releases/download/v1.0/{xmem_ckpt_name}"
+        )
+    xmem_config = {
+        "model": xmem_ckpt,
+        "disable_long_term": False,
+        "enable_long_term": True,
+        "max_mid_term_frames": 10,
+        "min_mid_term_frames": 5,
+        "max_long_term_elements": 10000,
+        "num_prototypes": 128,
+        "top_k": 30,
+        "mem_every": 5,
+        "deep_update_every": -1,
+        "save_scores": False,
+        "size": 480,
+        "key_dim": 64,
+        "value_dim": 512,
+        "hidden_dim": 64,
+        "enable_long_term_count_usage": True,
+    }
+
+    network = XMem(xmem_config, xmem_config["model"]).to(device).eval()
+    model_weights = torch.load(xmem_config["model"])
+    network.load_weights(model_weights, init_as_zero_if_needed=True)
+
+    xmem_processor = InferenceCore(network, config=xmem_config)
+    xmem_mapper = MaskMapper()
+    xmem_im_transform = T.Compose(
+        [
+            T.ToTensor(),
+            im_normalization,
+            T.Resize(xmem_config["size"], interpolation=T.InterpolationMode.BILINEAR),
+        ]
+    )
+    xmem_mask_transform = T.Compose(
+        [
+            T.ToTensor(),
+            T.Resize(xmem_config["size"], interpolation=T.InterpolationMode.NEAREST),
+        ]
+    )
+    return xmem_processor, xmem_mapper, xmem_im_transform, xmem_mask_transform
+
+
+@torch.no_grad()
+def track_mask(
+    rgb: np.ndarray,
+    mask: Optional[np.ndarray],
+    xmem_processor: InferenceCore,
+    xmem_mapper: MaskMapper,
+    xmem_im_transform: T.Compose,
+    xmem_mask_transform: T.Compose,
+) -> np.ndarray:
+    """Track the mask in the video stream.
+
+    Args:
+        rgb (np.ndarray): The input RGB image.
+        mask (np.ndarray): The binary mask to track.
+        xmem_processor (InferenceCore): The XMem processor object.
+        xmem_mapper (MaskMapper): The XMem mask mapper object.
+        xmem_im_transform (T.Compose): The image transformation pipeline.
+        xmem_mask_transform (T.Compose): The mask transformation pipeline.
+
+    Returns:
+        np.ndarray: The updated mask after tracking.
+    """
+    device = "cuda"
+    H, W = rgb.shape[:2]
+
+    # Process the image and mask
+    rgb_tensor = xmem_im_transform(rgb).unsqueeze(0).cuda()
+
+    if mask is not None:
+        mask_tensor = xmem_mask_transform(mask).unsqueeze(0).cuda()
+        converted_masks = xmem_mapper.convert_mask(
+            mask_tensor[0].cpu().numpy(), exhaustive=True
+        )[0]
+        converted_masks = converted_masks.to(device)
+        xmem_processor.set_all_labels(list(xmem_mapper.remappings.values()))
+
+    prob = xmem_processor.step(
+        rgb_tensor[0],
+        converted_masks[0] if mask is not None else None,
+        list(xmem_mapper.remappings.values()) if mask is not None else None,
+        end=False,
+    )
+    prob = F.interpolate(
+        prob.unsqueeze(1),
+        (H, W),
+        mode="bilinear",
+        align_corners=False,
+    )[:, 0]
+
+    out_mask = torch.argmax(prob, dim=0)
+    out_mask = (out_mask.detach().cpu().numpy()).astype(np.uint8)
+    out_mask = xmem_mapper.remap_index_mask(out_mask)
+
+    return out_mask
+
+
 if __name__ == "__main__":
     # Example usage
     curr_path = os.path.dirname(os.path.abspath(__file__))
@@ -113,3 +230,31 @@ if __name__ == "__main__":
     predictor = load_sam()
     mask = label_image(img, predictor)
     print("Generated mask shape:", mask.shape)
+
+    # Load XMem model
+    xmem_processor, xmem_mapper, xmem_im_transform, xmem_mask_transform = load_XMem()
+    # Example tracking
+    mask = track_mask(
+        img, mask, xmem_processor, xmem_mapper, xmem_im_transform, xmem_mask_transform
+    )
+    mask_vis = mask / np.max(mask) * 255
+    mask_vis = np.repeat(mask_vis[:, :, None], 3, axis=2)
+    mask_vis = mask_vis.astype(np.uint8)
+    mask_vis = cv2.resize(mask_vis, (img.shape[1] // 4, img.shape[0] // 4))
+    cv2.imshow("Tracked Mask", mask_vis)
+    cv2.waitKey(30)
+    for _ in range(100):
+        mask = track_mask(
+            img,
+            None,
+            xmem_processor,
+            xmem_mapper,
+            xmem_im_transform,
+            xmem_mask_transform,
+        )
+        mask_vis = mask / np.max(mask) * 255
+        mask_vis = np.repeat(mask_vis[:, :, None], 3, axis=2)
+        mask_vis = mask_vis.astype(np.uint8)
+        mask_vis = cv2.resize(mask_vis, (img.shape[1] // 4, img.shape[0] // 4))
+        cv2.imshow("Tracked Mask", mask_vis)
+        cv2.waitKey(30)
