@@ -52,7 +52,8 @@ el.replaceWith(d);
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def label_image(img: np.ndarray, predictor: SamPredictor) -&gt; np.ndarray:
+<pre><code class="python">@torch.no_grad()
+def label_image(img: np.ndarray, predictor: SamPredictor) -&gt; np.ndarray:
     &#34;&#34;&#34;Interactive Image Labeling with SAM
 
     Label an image with a binary mask using SAM interactively using mouse clicks
@@ -148,6 +149,68 @@ Implement this function using opencv mouse callback function</p>
 <dd>The binary mask as a numpy array.</dd>
 </dl></div>
 </dd>
+<dt id="yixuan_utilities.segment_utils.load_XMem"><code class="name flex">
+<span>def <span class="ident">load_XMem</span></span>(<span>) ‑> XMem.inference.inference_core.InferenceCore | XMem.inference.data.mask_mapper.MaskMapper | torchvision.transforms.transforms.Compose</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_XMem() -&gt; Union[InferenceCore, MaskMapper, T.Compose, T.Compose]:
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    Path(curr_path).mkdir(parents=True, exist_ok=True)
+    xmem_ckpt_path = f&#34;{curr_path}/ckpts&#34;
+    xmem_ckpt_name = &#34;XMem.pth&#34;
+    xmem_ckpt = f&#34;{xmem_ckpt_path}/{xmem_ckpt_name}&#34;
+    device = &#34;cuda&#34;
+    if not os.path.exists(xmem_ckpt):
+        print(&#34;Downloading XMem model...&#34;)
+        os.system(
+            f&#34;wget -P {xmem_ckpt_path} https://github.com/hkchengrex/XMem/releases/download/v1.0/{xmem_ckpt_name}&#34;
+        )
+    xmem_config = {
+        &#34;model&#34;: xmem_ckpt,
+        &#34;disable_long_term&#34;: False,
+        &#34;enable_long_term&#34;: True,
+        &#34;max_mid_term_frames&#34;: 10,
+        &#34;min_mid_term_frames&#34;: 5,
+        &#34;max_long_term_elements&#34;: 10000,
+        &#34;num_prototypes&#34;: 128,
+        &#34;top_k&#34;: 30,
+        &#34;mem_every&#34;: 5,
+        &#34;deep_update_every&#34;: -1,
+        &#34;save_scores&#34;: False,
+        &#34;size&#34;: 480,
+        &#34;key_dim&#34;: 64,
+        &#34;value_dim&#34;: 512,
+        &#34;hidden_dim&#34;: 64,
+        &#34;enable_long_term_count_usage&#34;: True,
+    }
+
+    network = XMem(xmem_config, xmem_config[&#34;model&#34;]).to(device).eval()
+    model_weights = torch.load(xmem_config[&#34;model&#34;])
+    network.load_weights(model_weights, init_as_zero_if_needed=True)
+
+    xmem_processor = InferenceCore(network, config=xmem_config)
+    xmem_mapper = MaskMapper()
+    xmem_im_transform = T.Compose(
+        [
+            T.ToTensor(),
+            im_normalization,
+            T.Resize(xmem_config[&#34;size&#34;], interpolation=T.InterpolationMode.BILINEAR),
+        ]
+    )
+    xmem_mask_transform = T.Compose(
+        [
+            T.ToTensor(),
+            T.Resize(xmem_config[&#34;size&#34;], interpolation=T.InterpolationMode.NEAREST),
+        ]
+    )
+    return xmem_processor, xmem_mapper, xmem_im_transform, xmem_mask_transform</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
 <dt id="yixuan_utilities.segment_utils.load_sam"><code class="name flex">
 <span>def <span class="ident">load_sam</span></span>(<span>) ‑> segment_anything.predictor.SamPredictor</span>
 </code></dt>
@@ -182,6 +245,91 @@ Implement this function using opencv mouse callback function</p>
 <dd>The SAM predictor object.</dd>
 </dl></div>
 </dd>
+<dt id="yixuan_utilities.segment_utils.track_mask"><code class="name flex">
+<span>def <span class="ident">track_mask</span></span>(<span>rgb: numpy.ndarray,<br>mask: numpy.ndarray | None,<br>xmem_processor: XMem.inference.inference_core.InferenceCore,<br>xmem_mapper: XMem.inference.data.mask_mapper.MaskMapper,<br>xmem_im_transform: torchvision.transforms.transforms.Compose,<br>xmem_mask_transform: torchvision.transforms.transforms.Compose) ‑> numpy.ndarray</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@torch.no_grad()
+def track_mask(
+    rgb: np.ndarray,
+    mask: Optional[np.ndarray],
+    xmem_processor: InferenceCore,
+    xmem_mapper: MaskMapper,
+    xmem_im_transform: T.Compose,
+    xmem_mask_transform: T.Compose,
+) -&gt; np.ndarray:
+    &#34;&#34;&#34;Track the mask in the video stream.
+
+    Args:
+        rgb (np.ndarray): The input RGB image.
+        mask (np.ndarray): The binary mask to track.
+        xmem_processor (InferenceCore): The XMem processor object.
+        xmem_mapper (MaskMapper): The XMem mask mapper object.
+        xmem_im_transform (T.Compose): The image transformation pipeline.
+        xmem_mask_transform (T.Compose): The mask transformation pipeline.
+
+    Returns:
+        np.ndarray: The updated mask after tracking.
+    &#34;&#34;&#34;
+    device = &#34;cuda&#34;
+    H, W = rgb.shape[:2]
+
+    # Process the image and mask
+    rgb_tensor = xmem_im_transform(rgb).unsqueeze(0).cuda()
+
+    if mask is not None:
+        mask_tensor = xmem_mask_transform(mask).unsqueeze(0).cuda()
+        converted_masks = xmem_mapper.convert_mask(
+            mask_tensor[0].cpu().numpy(), exhaustive=True
+        )[0]
+        converted_masks = converted_masks.to(device)
+        xmem_processor.set_all_labels(list(xmem_mapper.remappings.values()))
+
+    prob = xmem_processor.step(
+        rgb_tensor[0],
+        converted_masks[0] if mask is not None else None,
+        list(xmem_mapper.remappings.values()) if mask is not None else None,
+        end=False,
+    )
+    prob = F.interpolate(
+        prob.unsqueeze(1),
+        (H, W),
+        mode=&#34;bilinear&#34;,
+        align_corners=False,
+    )[:, 0]
+
+    out_mask = torch.argmax(prob, dim=0)
+    out_mask = (out_mask.detach().cpu().numpy()).astype(np.uint8)
+    out_mask = xmem_mapper.remap_index_mask(out_mask)
+
+    return out_mask</code></pre>
+</details>
+<div class="desc"><p>Track the mask in the video stream.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>rgb</code></strong> :&ensp;<code>np.ndarray</code></dt>
+<dd>The input RGB image.</dd>
+<dt><strong><code>mask</code></strong> :&ensp;<code>np.ndarray</code></dt>
+<dd>The binary mask to track.</dd>
+<dt><strong><code>xmem_processor</code></strong> :&ensp;<code>InferenceCore</code></dt>
+<dd>The XMem processor object.</dd>
+<dt><strong><code>xmem_mapper</code></strong> :&ensp;<code>MaskMapper</code></dt>
+<dd>The XMem mask mapper object.</dd>
+<dt><strong><code>xmem_im_transform</code></strong> :&ensp;<code>T.Compose</code></dt>
+<dd>The image transformation pipeline.</dd>
+<dt><strong><code>xmem_mask_transform</code></strong> :&ensp;<code>T.Compose</code></dt>
+<dd>The mask transformation pipeline.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>np.ndarray</code></dt>
+<dd>The updated mask after tracking.</dd>
+</dl></div>
+</dd>
 </dl>
 </section>
 <section>
@@ -200,7 +348,9 @@ Implement this function using opencv mouse callback function</p>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="yixuan_utilities.segment_utils.label_image" href="#yixuan_utilities.segment_utils.label_image">label_image</a></code></li>
+<li><code><a title="yixuan_utilities.segment_utils.load_XMem" href="#yixuan_utilities.segment_utils.load_XMem">load_XMem</a></code></li>
 <li><code><a title="yixuan_utilities.segment_utils.load_sam" href="#yixuan_utilities.segment_utils.load_sam">load_sam</a></code></li>
+<li><code><a title="yixuan_utilities.segment_utils.track_mask" href="#yixuan_utilities.segment_utils.track_mask">track_mask</a></code></li>
 </ul>
 </li>
 </ul>
