@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>yixuan_utilities API documentation</title>
+<title>yixuan_utilities.joystick_utils API documentation</title>
 <meta name="description" content="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -33,48 +33,105 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Package <code>yixuan_utilities</code></h1>
+<h1 class="title">Module <code>yixuan_utilities.joystick_utils</code></h1>
 </header>
 <section id="section-intro">
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt><code class="name"><a title="yixuan_utilities.cad_utils" href="cad_utils.html">yixuan_utilities.cad_utils</a></code></dt>
+<dt id="yixuan_utilities.joystick_utils.test_joystick"><code class="name flex">
+<span>def <span class="ident">test_joystick</span></span>(<span>) ‑> None</span>
+</code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.draw_utils" href="draw_utils.html">yixuan_utilities.draw_utils</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.hdf5_utils" href="hdf5_utils.html">yixuan_utilities.hdf5_utils</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.joystick_utils" href="joystick_utils.html">yixuan_utilities.joystick_utils</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.kinematics_helper" href="kinematics_helper.html">yixuan_utilities.kinematics_helper</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.scripts" href="scripts/index.html">yixuan_utilities.scripts</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="yixuan_utilities.segment_utils" href="segment_utils.html">yixuan_utilities.segment_utils</a></code></dt>
-<dd>
-<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_joystick() -&gt; None:
+    &#34;&#34;&#34;Test the joystick functionality.&#34;&#34;&#34;
+    joystick = Joystick()
+
+    try:
+        while True:
+            start_time = time.time()
+            axes, buttons, hats = joystick.read_joystick()
+            print(f&#34;Axes: {axes}, Buttons: {buttons}, Hats: {hats}&#34;)
+            time.sleep(max(1 / 30.0 - (time.time() - start_time), 0))
+            print(f&#34;frequency: {1/(time.time() - start_time)} Hz&#34;)
+    except KeyboardInterrupt:
+        print(&#34;Exiting joystick test.&#34;)
+    finally:
+        pygame.quit()</code></pre>
+</details>
+<div class="desc"><p>Test the joystick functionality.</p></div>
 </dd>
 </dl>
 </section>
 <section>
-</section>
-<section>
-</section>
-<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="yixuan_utilities.joystick_utils.Joystick"><code class="flex name class">
+<span>class <span class="ident">Joystick</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Joystick:
+    &#34;&#34;&#34;Class to handle joystick input.&#34;&#34;&#34;
+
+    def __init__(self) -&gt; None:
+        &#34;&#34;&#34;Initialize the joystick.&#34;&#34;&#34;
+        pygame.init()
+        pygame.joystick.init()
+
+        if pygame.joystick.get_count() == 0:
+            raise RuntimeError(&#34;No joystick found.&#34;)
+
+        # Get the first controller
+        self.ctrl = pygame.joystick.Joystick(0)
+        self.ctrl.init()
+        print(f&#34;Connected to: {self.ctrl.get_name()}&#34;)
+
+    def read_joystick(self) -&gt; tuple[list[float], list[int], list[tuple[int, int]]]:
+        &#34;&#34;&#34;Read joystick input.&#34;&#34;&#34;
+        pygame.event.pump()
+        axes = [self.ctrl.get_axis(i) for i in range(self.ctrl.get_numaxes())]
+        buttons = [self.ctrl.get_button(i) for i in range(self.ctrl.get_numbuttons())]
+        hats = [self.ctrl.get_hat(i) for i in range(self.ctrl.get_numhats())]
+        return axes, buttons, hats</code></pre>
+</details>
+<div class="desc"><p>Class to handle joystick input.</p>
+<p>Initialize the joystick.</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="yixuan_utilities.joystick_utils.Joystick.read_joystick"><code class="name flex">
+<span>def <span class="ident">read_joystick</span></span>(<span>self) ‑> tuple[list[float], list[int], list[tuple[int, int]]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_joystick(self) -&gt; tuple[list[float], list[int], list[tuple[int, int]]]:
+    &#34;&#34;&#34;Read joystick input.&#34;&#34;&#34;
+    pygame.event.pump()
+    axes = [self.ctrl.get_axis(i) for i in range(self.ctrl.get_numaxes())]
+    buttons = [self.ctrl.get_button(i) for i in range(self.ctrl.get_numbuttons())]
+    hats = [self.ctrl.get_hat(i) for i in range(self.ctrl.get_numhats())]
+    return axes, buttons, hats</code></pre>
+</details>
+<div class="desc"><p>Read joystick input.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -82,15 +139,24 @@ el.replaceWith(d);
 <ul></ul>
 </div>
 <ul id="index">
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<li><h3>Super-module</h3>
 <ul>
-<li><code><a title="yixuan_utilities.cad_utils" href="cad_utils.html">yixuan_utilities.cad_utils</a></code></li>
-<li><code><a title="yixuan_utilities.draw_utils" href="draw_utils.html">yixuan_utilities.draw_utils</a></code></li>
-<li><code><a title="yixuan_utilities.hdf5_utils" href="hdf5_utils.html">yixuan_utilities.hdf5_utils</a></code></li>
-<li><code><a title="yixuan_utilities.joystick_utils" href="joystick_utils.html">yixuan_utilities.joystick_utils</a></code></li>
-<li><code><a title="yixuan_utilities.kinematics_helper" href="kinematics_helper.html">yixuan_utilities.kinematics_helper</a></code></li>
-<li><code><a title="yixuan_utilities.scripts" href="scripts/index.html">yixuan_utilities.scripts</a></code></li>
-<li><code><a title="yixuan_utilities.segment_utils" href="segment_utils.html">yixuan_utilities.segment_utils</a></code></li>
+<li><code><a title="yixuan_utilities" href="index.html">yixuan_utilities</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="yixuan_utilities.joystick_utils.test_joystick" href="#yixuan_utilities.joystick_utils.test_joystick">test_joystick</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="yixuan_utilities.joystick_utils.Joystick" href="#yixuan_utilities.joystick_utils.Joystick">Joystick</a></code></h4>
+<ul class="">
+<li><code><a title="yixuan_utilities.joystick_utils.Joystick.read_joystick" href="#yixuan_utilities.joystick_utils.Joystick.read_joystick">read_joystick</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
