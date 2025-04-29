@@ -3,11 +3,7 @@ name: Build & Publish to (PyPI | TestPyPI)
 
 on:
   push:
-    tags:
-      # Release candidates such as v1.2.0-rc1 → TestPyPI
-      - "v*rc*"
-      # Production releases such as v1.2.0 -> PyPI
-      - "v*[0-9]"       # any tag that starts with v and ends in a digit
+    branches: [ main ]
   workflow_dispatch:     # allow manual runs
 
 permissions:
