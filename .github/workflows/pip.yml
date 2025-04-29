@@ -31,7 +31,6 @@ jobs:
 
       # ---------- Production PyPI ----------
       - name: 🚀  Publish to **PyPI**
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
         # prefer OpenID-Connect trusted publishing; falls back to a classic token
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
