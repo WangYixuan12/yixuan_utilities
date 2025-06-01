@@ -719,6 +719,7 @@ torch.Tensor: Foreground point cloud tensor of shape (b, h*w, 3).</p></div>
             self.vis_dict[mesh_name] = copy.deepcopy(mesh)
             self.visualizer.add_geometry(self.vis_dict[mesh_name])
         self.visualizer.update_geometry(self.vis_dict[mesh_name])
+        self.mesh_vertices[mesh_name] = np.array(mesh.vertices).copy()
 
     def render(
         self,
@@ -931,7 +932,8 @@ torch.Tensor: Foreground point cloud tensor of shape (b, h*w, 3).</p></div>
         del self.vis_dict[mesh_name]
         self.vis_dict[mesh_name] = copy.deepcopy(mesh)
         self.visualizer.add_geometry(self.vis_dict[mesh_name])
-    self.visualizer.update_geometry(self.vis_dict[mesh_name])</code></pre>
+    self.visualizer.update_geometry(self.vis_dict[mesh_name])
+    self.mesh_vertices[mesh_name] = np.array(mesh.vertices).copy()</code></pre>
 </details>
 <div class="desc"><p>update custom mesh</p></div>
 </dd>
