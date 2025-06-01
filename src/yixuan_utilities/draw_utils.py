@@ -484,6 +484,7 @@ class o3dVisualizer:
             self.vis_dict[mesh_name] = copy.deepcopy(mesh)
             self.visualizer.add_geometry(self.vis_dict[mesh_name])
         self.visualizer.update_geometry(self.vis_dict[mesh_name])
+        self.mesh_vertices[mesh_name] = np.array(mesh.vertices).copy()
 
     def render(
         self,
