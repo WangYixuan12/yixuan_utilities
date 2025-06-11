@@ -245,6 +245,40 @@ Implement this function using opencv mouse callback function</p>
 <dd>The SAM predictor object.</dd>
 </dl></div>
 </dd>
+<dt id="yixuan_utilities.segment_utils.load_sam_mask_generator"><code class="name flex">
+<span>def <span class="ident">load_sam_mask_generator</span></span>(<span>) ‑> segment_anything.automatic_mask_generator.SamAutomaticMaskGenerator</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_sam_mask_generator() -&gt; SamAutomaticMaskGenerator:
+    &#34;&#34;&#34;Load the SAM model and create a predictor.
+
+    Returns:
+        SamPredictor: The SAM predictor object.
+    &#34;&#34;&#34;
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    Path(curr_path).mkdir(parents=True, exist_ok=True)
+    sam_checkpoint = f&#34;{curr_path}/ckpts/sam_vit_h_4b8939.pth&#34;
+    remote_sam = &#34;https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&#34;
+    if not os.path.exists(sam_checkpoint):
+        os.system(f&#34;wget {remote_sam} -P {curr_path}/ckpts/&#34;)
+    model_type = &#34;vit_h&#34;
+    device = &#34;cuda&#34;
+    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+    sam.to(device=device)
+    mask_generator = SamAutomaticMaskGenerator(sam)
+    return mask_generator</code></pre>
+</details>
+<div class="desc"><p>Load the SAM model and create a predictor.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SamPredictor</code></dt>
+<dd>The SAM predictor object.</dd>
+</dl></div>
+</dd>
 <dt id="yixuan_utilities.segment_utils.track_mask"><code class="name flex">
 <span>def <span class="ident">track_mask</span></span>(<span>rgb: numpy.ndarray,<br>mask: numpy.ndarray | None,<br>xmem_processor: XMem.inference.inference_core.InferenceCore,<br>xmem_mapper: XMem.inference.data.mask_mapper.MaskMapper,<br>xmem_im_transform: torchvision.transforms.transforms.Compose,<br>xmem_mask_transform: torchvision.transforms.transforms.Compose) ‑> numpy.ndarray</span>
 </code></dt>
@@ -350,6 +384,7 @@ def track_mask(
 <li><code><a title="yixuan_utilities.segment_utils.label_image" href="#yixuan_utilities.segment_utils.label_image">label_image</a></code></li>
 <li><code><a title="yixuan_utilities.segment_utils.load_XMem" href="#yixuan_utilities.segment_utils.load_XMem">load_XMem</a></code></li>
 <li><code><a title="yixuan_utilities.segment_utils.load_sam" href="#yixuan_utilities.segment_utils.load_sam">load_sam</a></code></li>
+<li><code><a title="yixuan_utilities.segment_utils.load_sam_mask_generator" href="#yixuan_utilities.segment_utils.load_sam_mask_generator">load_sam_mask_generator</a></code></li>
 <li><code><a title="yixuan_utilities.segment_utils.track_mask" href="#yixuan_utilities.segment_utils.track_mask">track_mask</a></code></li>
 </ul>
 </li>
