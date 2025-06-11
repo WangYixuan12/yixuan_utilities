@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
-from segment_anything import SamPredictor, sam_model_registry
+from segment_anything import SamPredictor, sam_model_registry, SamAutomaticMaskGenerator
 from XMem.dataset.range_transform import im_normalization
 from XMem.inference.data.mask_mapper import MaskMapper
 from XMem.inference.inference_core import InferenceCore
@@ -112,6 +112,25 @@ def load_sam() -> SamPredictor:
     sam.to(device=device)
     predictor = SamPredictor(sam)
     return predictor
+
+def load_sam_mask_generator() -> SamAutomaticMaskGenerator:
+    """Load the SAM model and create a predictor.
+
+    Returns:
+        SamPredictor: The SAM predictor object.
+    """
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    Path(curr_path).mkdir(parents=True, exist_ok=True)
+    sam_checkpoint = f"{curr_path}/ckpts/sam_vit_h_4b8939.pth"
+    remote_sam = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
+    if not os.path.exists(sam_checkpoint):
+        os.system(f"wget {remote_sam} -P {curr_path}/ckpts/")
+    model_type = "vit_h"
+    device = "cuda"
+    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+    sam.to(device=device)
+    mask_generator = SamAutomaticMaskGenerator(sam)
+    return mask_generator
 
 
 def load_XMem() -> Union[InferenceCore, MaskMapper, T.Compose, T.Compose]:
