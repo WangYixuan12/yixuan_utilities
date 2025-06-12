@@ -113,7 +113,7 @@ def load_sam() -> SamPredictor:
     predictor = SamPredictor(sam)
     return predictor
 
-def load_sam_mask_generator() -> SamAutomaticMaskGenerator:
+def load_sam_mask_generator(*args, **kwargs) -> SamAutomaticMaskGenerator:
     """Load the SAM model and create a predictor.
 
     Returns:
@@ -129,7 +129,7 @@ def load_sam_mask_generator() -> SamAutomaticMaskGenerator:
     device = "cuda"
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
     sam.to(device=device)
-    mask_generator = SamAutomaticMaskGenerator(sam)
+    mask_generator = SamAutomaticMaskGenerator(sam, *args, **kwargs)
     return mask_generator
 
 
