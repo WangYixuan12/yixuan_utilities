@@ -5,7 +5,11 @@ from PIL import Image
 
 
 def extract_dinov2_features(
-    dinov2_model: torch.nn.Module, imgs: np.ndarray, patch_h: int, patch_w: int
+    dinov2_model: torch.nn.Module,
+    imgs: np.ndarray,
+    patch_h: int,
+    patch_w: int,
+    device: str,
 ) -> torch.Tensor:
     assert imgs.ndim == 4, "imgs must be a 4D array"
     assert imgs.max() > 1 and imgs.max() < 256, "imgs must be in [0, 255]"
@@ -25,16 +29,12 @@ def extract_dinov2_features(
         ]
     )
 
-    imgs_tensor = torch.zeros(
-        (K, 3, patch_h * 14, patch_w * 14), device=dinov2_model.device
-    )
+    imgs_tensor = torch.zeros((K, 3, patch_h * 14, patch_w * 14), device=device)
     for j in range(K):
         img = Image.fromarray(imgs[j])
         imgs_tensor[j] = transform(img)[:3]
     with torch.no_grad():
-        features_dict = dinov2_model.forward_features(
-            imgs_tensor.to(dtype=dinov2_model.dtype)
-        )
+        features_dict = dinov2_model.forward_features(imgs_tensor)
         features = features_dict["x_norm_patchtokens"]
         features = features.reshape((K, patch_h, patch_w, feat_dim))
     return features
