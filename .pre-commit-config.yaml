@@ -5,7 +5,7 @@ default_language_version:
 
 exclude: |
   (?x)^(
-    ^assets/|
+    src/yixuan_utilities/assets/.*|
     src/yixuan_utilities/sam_test.jpg
   )$
 repos:
@@ -48,7 +48,10 @@ repos:
           docker/ros/rootfs/usr/local/share/doro\-lxde\-wallpapers/bg.*\.jpg|
           docker/ros/web/yarn\.lock|
           src/modelzoo/detic/lvis_v1_train_cat_info\.json|
-          src/modelzoo/edge_grasp_serve/example_pc\.npy
+          src/modelzoo/edge_grasp_serve/example_pc\.npy|
+          src/yixuan_utilities/assets/.*|
+          src/yixuan_utilities/sam_test.jpg|
+          ^.glb
         )$
   -   id: check-toml
   -   id: end-of-file-fixer
@@ -94,6 +97,11 @@ repos:
   rev: 3.0.0
   hooks:
   -  id: forbid-binary
+     exclude: |
+        (?x)^(
+          src/yixuan_utilities/assets/.*|
+          src/yixuan_utilities/sam_test.jpg
+        )$
 
 # - repo: https://github.com/rhysd/actionlint
 #   # only used locally. ensure this matches .github/workflows/actionlint.yml
