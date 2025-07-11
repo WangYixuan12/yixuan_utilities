@@ -1,12 +1,14 @@
 import copy
 import logging
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import open3d as o3d
-import sapien.core as sapien
+import pinocchio
+import sapien
 import transforms3d
 import urdfpy
 
@@ -49,10 +51,23 @@ class KinHelper:
         self.link_name_to_idx: dict = {}
         for link_idx, link in enumerate(self.sapien_robot.get_links()):
             self.link_name_to_idx[link.name] = link_idx
+
+        # # load pinocchio model
+        # self.pinocchio_model = PinocchioModel.createPinocchioModel(urdf_path)
+
+        # find end effector frame id
         if self.eef_name != "none":
             self.sapien_eef_idx = self.link_name_to_idx[self.eef_name]
+            # self.sapien_eef_idx = self.pinocchio_model.model.getFrameId(self.eef_name)
         else:
             self.sapien_eef_idx = None
+            # self.sapien_eef_idx = None
+
+        # # create link name to frame id mapping
+        # self.link_name_to_frame_id: dict = {}
+        # for frame_id in range(self.pinocchio_model.model.nframes):
+        #     frame_name = self.pinocchio_model.model.frames[frame_id].name
+        #     self.link_name_to_frame_id[frame_name] = frame_id
 
         # load meshes and offsets from urdf_robot
         self.meshes = {}
@@ -77,6 +92,36 @@ class KinHelper:
                     self.offsets[link.name] = collision.origin
         self.pcd_dict: dict = {}
         self.tool_meshes: dict = {}
+
+    def convert_from_sapien_joint_order(
+        self, arr: np.ndarray, joint_names: list[str]
+    ) -> np.ndarray:
+        """Convert array in sapien joint order to xml joint order"""
+        original2sapien_joint = np.zeros(len(joint_names))
+        for sapien_joint_idx, sapien_joint in enumerate(
+            self.sapien_robot.get_active_joints()
+        ):
+            for original_joint_idx, original_joint in enumerate(joint_names):
+                if sapien_joint.name == original_joint:
+                    original2sapien_joint[original_joint_idx] = sapien_joint_idx
+                    break
+        original2sapien_joint = original2sapien_joint.astype(int)
+        return arr[original2sapien_joint]
+
+    def convert_to_sapien_joint_order(
+        self, arr: np.ndarray, joint_names: list[str]
+    ) -> np.ndarray:
+        """Convert array in xml joint order to sapien joint order"""
+        sapien2original_joint = np.zeros(len(joint_names))
+        for sapien_joint_idx, sapien_joint in enumerate(
+            self.sapien_robot.get_active_joints()
+        ):
+            for original_joint_idx, original_joint in enumerate(joint_names):
+                if sapien_joint.name == original_joint:
+                    sapien2original_joint[sapien_joint_idx] = original_joint_idx
+                    break
+        sapien2original_joint = sapien2original_joint.astype(int)
+        return arr[sapien2original_joint]
 
     def _mesh_poses_to_pc(
         self,
@@ -139,11 +184,13 @@ class KinHelper:
     ) -> np.ndarray:
         """Compute point cloud of robot links given joint positions"""
         self.robot_model.compute_forward_kinematics(qpos)
+        # self.pinocchio_model.computeForwardKinematics(qpos)
         if link_names is None:
             link_names = list(self.meshes.keys())
         if num_pts is None:
             num_pts = [500] * len(link_names)
         link_idx_ls = []
+        # link_pose_ls = []
         for link_name in link_names:
             for link_idx, link in enumerate(self.sapien_robot.get_links()):
                 if link.name == link_name:
@@ -155,6 +202,16 @@ class KinHelper:
                 for link_idx in link_idx_ls
             ]
         )
+        # for link_idx, link in enumerate(self.sapien_robot.get_links()):
+        #     if link_name in self.link_name_to_frame_id:
+        #         frame_id = self.link_name_to_frame_id[link_name]
+        #         pose = pinocchio.updateFramePlacements(self.pinocchio_model.model,
+        # self.pinocchio_model.data)[frame_id]
+        #         link_pose_ls.append(pose)
+        #     else:
+        #         # fallback to neutral pose if frame not found
+        #         link_pose_ls.append(np.eye(4))
+        # link_pose_ls = np.stack(link_pose_ls)
         meshes_ls = [self.meshes[link_name] for link_name in link_names]
         offsets_ls = [self.offsets[link_name] for link_name in link_names]
         scales_ls = [self.scales[link_name] for link_name in link_names]
@@ -175,9 +232,11 @@ class KinHelper:
     ) -> list[o3d.geometry.TriangleMesh]:
         """Compute meshes of robot links given joint positions"""
         self.robot_model.compute_forward_kinematics(qpos)
+        # self.pinocchio_model.computeForwardKinematics(qpos)
         if link_names is None:
             link_names = list(self.meshes.keys())
         link_idx_ls = []
+        # link_pose_ls = []
         for link_name in link_names:
             for link_idx, link in enumerate(self.sapien_robot.get_links()):
                 if link.name == link_name:
@@ -189,6 +248,15 @@ class KinHelper:
                 for link_idx in link_idx_ls
             ]
         )
+        # for link_name in link_names:
+        #     if link_name in self.link_name_to_frame_id:
+        #         frame_id = self.link_name_to_frame_id[link_name]
+        #         pose = pinocchio.updateFramePlacements(self.pinocchio_model.model,
+        # self.pinocchio_model.data)[frame_id]
+        #         link_pose_ls.append(pose)
+        #     else:
+        #         link_pose_ls.append(np.eye(4))
+        # link_pose_ls = np.stack(link_pose_ls)
         offsets_ls = [self.offsets[link_name] for link_name in link_names]
         meshes_ls = []
         for link_idx, link_name in enumerate(link_names):
@@ -208,10 +276,17 @@ class KinHelper:
     ) -> list[np.ndarray]:
         """Compute forward kinematics of robot links given joint positions"""
         self.robot_model.compute_forward_kinematics(qpos)
+        # self.pinocchio_model.computeForwardKinematics(qpos)
         link_pose_ls = []
         for i in link_idx:
             pose = self.robot_model.get_link_pose(i)
             link_pose_ls.append(pose.to_transformation_matrix())
+            # if i < len(self.pinocchio_model.model.frames):
+            #     pose = pinocchio.updateFramePlacements(self.pinocchio_model.model,
+            # self.pinocchio_model.data)[i]
+            #     link_pose_ls.append(pose)
+            # else:
+            #     link_pose_ls.append(np.eye(4))
         return link_pose_ls
 
     def compute_fk_from_link_names(
@@ -224,6 +299,16 @@ class KinHelper:
         self.robot_model.compute_forward_kinematics(qpos)
         link_idx_ls = [self.link_name_to_idx[link_name] for link_name in link_names]
         poses_ls = self.compute_fk_from_link_idx(qpos, link_idx_ls)
+        # self.pinocchio_model.computeForwardKinematics(qpos)
+        # poses_ls = []
+        # for link_name in link_names:
+        #     if link_name in self.link_name_to_frame_id:
+        #         frame_id = self.link_name_to_frame_id[link_name]
+        #         pose = pinocchio.updateFramePlacements(self.pinocchio_model.model,
+        # self.pinocchio_model.data)[frame_id]
+        #         poses_ls.append(pose)
+        #     else:
+        #         poses_ls.append(np.eye(4))
         if in_obj_frame:
             for i in range(len(link_names)):
                 if link_names[i] in self.offsets:
@@ -235,6 +320,7 @@ class KinHelper:
     ) -> dict[str, np.ndarray]:
         """Compute forward kinematics of all robot links given joint positions"""
         all_link_names = [link.name for link in self.sapien_robot.get_links()]
+        # all_link_names = [frame.name for frame in self.pinocchio_model.model.frames]
         return self.compute_fk_from_link_names(qpos, all_link_names, in_obj_frame)
 
     def compute_ik(
@@ -285,6 +371,33 @@ class KinHelper:
             damp=damp,
         )
         return qpos[0]
+
+        # """Compute IK given initial joint pos and target pose in matrix form"""
+        # if eef_idx is None:
+        #     eef_idx = self.sapien_eef_idx
+        # if eef_idx is None:
+        #     raise ValueError("No end effector frame specified")
+
+        # # Convert target pose to position and quaternion
+        # position = tf_mat[:3, 3]
+        # rotation_matrix = tf_mat[:3, :3]
+        # quaternion = transforms3d.quaternions.mat2quat(rotation_matrix)
+        # quaternion = np.array([quaternion[1],
+        # quaternion[2], quaternion[3], quaternion[0]])  # xyzw to wxyz
+
+        # # Use the advanced IK solver
+        # qpos, success, error = self.pinocchio_model.computeInverseKinematics(
+        #     link_idx=eef_idx,
+        #     pose=(position, quaternion),
+        #     initial_qpos=initial_qpos,
+        #     active_qmask=active_qmask,
+        #     eps=1e-3,
+        #     damp=damp,
+        # )
+        # if not success:
+        #     logger.warning("IK did not converge to desired precision")
+
+        # return qpos
 
 
 def test_kin_helper_trossen() -> None:
@@ -452,6 +565,392 @@ def test_fk() -> None:
         print()
 
         time.sleep(0.1)
+
+
+class PinocchioModel:
+    """Pinocchio model wrapper that imitates the C++ implementation"""
+
+    def __init__(self, urdf_path: str, gravity: Optional[np.ndarray] = None):
+        # Load model from URDF
+        self.model = pinocchio.buildModelFromUrdf(urdf_path)
+        if gravity is None:
+            gravity = np.array([0, 0, -9.81])
+        self.model.gravity = pinocchio.Motion(gravity, np.zeros(3))
+        self.data = self.model.createData()
+
+        # Initialize joint ordering
+        self.indexS2P = np.eye(self.model.nv)
+        self.QIDX = np.array([])
+        self.NQ = np.array([])
+        self.NV = np.array([])
+
+        # Initialize link ordering
+        self.linkIdx2FrameIdx: list[int] = []
+
+        # Set default joint order (all joints in model order)
+        default_joint_names = []
+        for joint_id in range(1, len(self.model.joints)):  # Skip universe joint
+            joint_name = self.model.names[joint_id]
+            if joint_name != "universe":
+                default_joint_names.append(joint_name)
+        self.setJointOrder(default_joint_names)
+
+    @classmethod
+    def fromURDF(
+        cls, urdf_path: str, gravity: Optional[np.ndarray] = None
+    ) -> "PinocchioModel":
+        """Create PinocchioModel from URDF file"""
+        # Build model from URDF file
+        model = pinocchio.buildModelFromUrdf(urdf_path)
+        if gravity is None:
+            gravity = np.array([0, 0, -9.81])
+        model.gravity = pinocchio.Motion(gravity, np.zeros(3))
+
+        # Create instance
+        instance = cls.__new__(cls)
+        instance.model = model
+        instance.data = model.createData()
+
+        # Initialize joint ordering
+        instance.indexS2P = np.eye(instance.model.nv)
+        instance.QIDX = np.array([])
+        instance.NQ = np.array([])
+        instance.NV = np.array([])
+
+        # Initialize link ordering
+        instance.linkIdx2FrameIdx = []
+
+        # Set default joint order (all joints in model order)
+        default_joint_names = []
+        for joint_id in range(1, len(instance.model.joints)):  # Skip universe joint
+            joint_name = instance.model.names[joint_id]
+            if joint_name != "universe":
+                default_joint_names.append(joint_name)
+        instance.setJointOrder(default_joint_names)
+
+        return instance
+
+    def posS2P(self, qext: np.ndarray) -> np.ndarray:
+        """Convert standard joint values to Pinocchio internal configuration format"""
+        qint = np.zeros(self.model.nq)
+        count = 0
+
+        for N in range(len(self.QIDX)):
+            start_idx = self.QIDX[N]
+            nq = self.NQ[N]
+            # nv = self.NV[N]
+
+            if nq == 0:  # Fixed joint
+                continue
+            elif nq == 1:  # Revolute or prismatic joint
+                qint[start_idx] = qext[count]
+                count += 1
+            elif nq == 2:  # Planar joint (cos, sin representation)
+                qint[start_idx] = np.cos(qext[count])
+                qint[start_idx + 1] = np.sin(qext[count])
+                count += 1
+            else:
+                raise RuntimeError("Unsupported joint in computation.")
+
+        assert count == qext.size, "posS2P failed"
+        return qint
+
+    def posP2S(self, qint: np.ndarray) -> np.ndarray:
+        """Convert Pinocchio internal configuration format to standard joint values"""
+        qext = np.zeros(self.model.nv)
+        count = 0
+
+        for N in range(len(self.QIDX)):
+            start_idx = self.QIDX[N]
+            nq = self.NQ[N]
+            # nv = self.NV[N]
+
+            if nq == 0:  # Fixed joint
+                continue
+            elif nq == 1:  # Revolute or prismatic joint
+                qext[count] = qint[start_idx]
+                count += 1
+            elif nq == 2:  # Planar joint (cos, sin representation)
+                qext[count] = np.arctan2(qint[start_idx + 1], qint[start_idx])
+                count += 1
+            else:
+                raise RuntimeError("Unsupported joint in computation.")
+
+        assert count == self.model.nv, "posP2S failed"
+        return qext
+
+    def setJointOrder(self, names: list[str]) -> None:
+        """Set the joint order for conversion between standard and Pinocchio formats"""
+        v = np.zeros(self.model.nv, dtype=int)
+        count = 0
+
+        for name in names:
+            joint_id = self.model.getJointId(name)
+            if joint_id == self.model.njoints:
+                raise ValueError(f"Invalid joint name: {name}")
+
+            size = self.model.nvs[joint_id]
+            qi = self.model.idx_vs[joint_id]
+            for s in range(size):
+                v[count] = qi + s
+                count += 1
+
+        assert count == self.model.nv, "setJointOrder failed"
+        self.indexS2P = np.eye(self.model.nv)[v]
+
+        self.QIDX = np.zeros(len(names), dtype=int)
+        self.NQ = np.zeros(len(names), dtype=int)
+        self.NV = np.zeros(len(names), dtype=int)
+
+        for N, name in enumerate(names):
+            joint_id = self.model.getJointId(name)
+            if joint_id == self.model.njoints:
+                raise ValueError(f"Invalid joint name: {name}")
+
+            self.NQ[N] = self.model.nqs[joint_id]
+            self.NV[N] = self.model.nvs[joint_id]
+            self.QIDX[N] = self.model.idx_qs[joint_id]
+
+    def setLinkOrder(self, names: list[str]) -> None:
+        """Set the link order for frame indexing"""
+        self.linkIdx2FrameIdx = []
+
+        for name in names:
+            frame_id = self.model.getFrameId(name, pinocchio.BODY)
+            if frame_id == self.model.nframes:
+                raise ValueError(f"Invalid link name: {name}")
+            self.linkIdx2FrameIdx.append(frame_id)
+
+    def getRandomConfiguration(self) -> np.ndarray:
+        """Get a random configuration in standard format"""
+        return self.posP2S(pinocchio.randomConfiguration(self.model))
+
+    def computeForwardKinematics(self, qpos: np.ndarray) -> None:
+        """Compute forward kinematics"""
+        pinocchio.forwardKinematics(self.model, self.data, self.posS2P(qpos))
+
+    def getLinkPose(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+        """Get link pose (position and quaternion)"""
+        if index >= len(self.linkIdx2FrameIdx):
+            raise ValueError("Link index out of bounds")
+
+        frame = self.linkIdx2FrameIdx[index]
+        parent_joint = self.model.frames[frame].parent
+        link2joint = self.model.frames[frame].placement
+        joint2world = self.data.oMi[parent_joint]
+
+        link2world = joint2world * link2joint
+        position = link2world.translation
+        quaternion = pinocchio.Quaternion(link2world.rotation)
+
+        return position, np.array(
+            [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+        )
+
+    def computeFullJacobian(self, qpos: np.ndarray) -> None:
+        """Compute full Jacobian matrices"""
+        pinocchio.computeJointJacobians(self.model, self.data, self.posS2P(qpos))
+
+    def getLinkJacobian(self, index: int, local: bool = False) -> np.ndarray:
+        """Get link Jacobian matrix"""
+        if index >= len(self.linkIdx2FrameIdx):
+            raise ValueError("Link index out of bounds")
+
+        frame_idx = self.linkIdx2FrameIdx[index]
+        joint_idx = self.model.frames[frame_idx].parent
+
+        link2joint = self.model.frames[frame_idx].placement
+        joint2world = self.data.oMi[joint_idx]
+        link2world = joint2world * link2joint
+
+        J = pinocchio.getJointJacobian(
+            self.model, self.data, joint_idx, pinocchio.ReferenceFrame.WORLD
+        )
+
+        if local:
+            J = link2world.toActionMatrixInverse() @ J
+
+        # Permute Jacobian to standard format
+        return J @ self.indexS2P
+
+    def computeSingleLinkLocalJacobian(
+        self, qpos: np.ndarray, index: int
+    ) -> np.ndarray:
+        """Compute single link local Jacobian"""
+        if index >= len(self.linkIdx2FrameIdx):
+            raise ValueError("Link index out of bounds")
+
+        frame_idx = self.linkIdx2FrameIdx[index]
+        joint_idx = self.model.frames[frame_idx].parent
+        link2joint = self.model.frames[frame_idx].placement
+
+        J = pinocchio.computeJointJacobian(
+            self.model, self.data, self.posS2P(qpos), joint_idx
+        )
+
+        return link2joint.toActionMatrixInverse() @ J @ self.indexS2P
+
+    def computeGeneralizedMassMatrix(self, qpos: np.ndarray) -> np.ndarray:
+        """Compute generalized mass matrix"""
+        pinocchio.crba(self.model, self.data, self.posS2P(qpos))
+        # Make symmetric
+        M = self.data.M.copy()
+        M = (M + M.T) / 2
+        return self.indexS2P.T @ M @ self.indexS2P
+
+    def computeCoriolisMatrix(self, qpos: np.ndarray, qvel: np.ndarray) -> np.ndarray:
+        """Compute Coriolis matrix"""
+        return (
+            self.indexS2P.T
+            @ pinocchio.computeCoriolisMatrix(
+                self.model, self.data, self.posS2P(qpos), self.indexS2P @ qvel
+            )
+            @ self.indexS2P
+        )
+
+    def computeInverseDynamics(
+        self, qpos: np.ndarray, qvel: np.ndarray, qacc: np.ndarray
+    ) -> np.ndarray:
+        """Compute inverse dynamics (RNEA)"""
+        return self.indexS2P.T @ pinocchio.rnea(
+            self.model,
+            self.data,
+            self.posS2P(qpos),
+            self.indexS2P @ qvel,
+            self.indexS2P @ qacc,
+        )
+
+    def computeForwardDynamics(
+        self, qpos: np.ndarray, qvel: np.ndarray, qf: np.ndarray
+    ) -> np.ndarray:
+        """Compute forward dynamics (ABA)"""
+        return self.indexS2P.T @ pinocchio.aba(
+            self.model,
+            self.data,
+            self.posS2P(qpos),
+            self.indexS2P @ qvel,
+            self.indexS2P @ qf,
+        )
+
+    def computeInverseKinematics(
+        self,
+        link_idx: int,
+        pose: Tuple[np.ndarray, np.ndarray],  # (position, quaternion)
+        initial_qpos: Optional[np.ndarray] = None,
+        active_qmask: Optional[np.ndarray] = None,
+        eps: float = 1e-4,
+        max_iter: int = 1000,
+        dt: float = 1e-1,
+        damp: float = 1e-6,
+    ) -> Tuple[np.ndarray, bool, np.ndarray]:
+        """Compute inverse kinematics with advanced error handling"""
+        if link_idx >= len(self.linkIdx2FrameIdx):
+            raise ValueError("Link index out of bounds")
+
+        # Initialize configuration
+        if initial_qpos is None or len(initial_qpos) == 0:
+            q = pinocchio.neutral(self.model)
+        else:
+            q = self.posS2P(initial_qpos)
+
+        # Set up active joint mask
+        if active_qmask is not None and len(active_qmask) > 0:
+            mask = self.indexS2P @ active_qmask.astype(float)
+        else:
+            mask = np.ones(self.model.nv)
+
+        # Set up target pose
+        frame_idx = self.linkIdx2FrameIdx[link_idx]
+        joint_idx = self.model.frames[frame_idx].parent
+        # link2joint = self.model.frames[frame_idx].placement
+
+        position, quaternion = pose
+        l2w = pinocchio.SE3(
+            pinocchio.Quaternion(
+                quaternion[3], quaternion[0], quaternion[1], quaternion[2]
+            ).toRotationMatrix(),
+            position,
+        )
+        # oMdes = l2w * link2joint.inverse()
+        oMdes = l2w
+
+        # IK iteration
+        success = False
+        min_error = 1e10
+        best_q = q.copy()
+        best_err = np.zeros(6)
+
+        for _ in range(max_iter):
+            pinocchio.forwardKinematics(self.model, self.data, q)
+            # Compute error in joint frame
+            iMd = self.data.oMi[joint_idx].actInv(oMdes)
+            err = pinocchio.log6(iMd).vector  # in joint frame
+
+            err_norm = np.linalg.norm(err)
+            if err_norm < min_error:
+                min_error = err_norm
+                best_q = q.copy()
+                best_err = err.copy()
+
+            if err_norm < eps:
+                success = True
+                break
+
+            J = pinocchio.computeJointJacobian(self.model, self.data, q, joint_idx)
+            J = -np.dot(pinocchio.Jlog6(iMd.inverse()), J)
+
+            # Apply active joint mask if provided
+            if active_qmask is not None and len(active_qmask) > 0:
+                mask = self.indexS2P @ active_qmask.astype(float)
+                J = J @ np.diag(mask)
+
+            # Damped pseudo-inverse
+            JJt = J @ J.T
+            JJt += damp * np.eye(6)
+            v = -J.T @ np.linalg.solve(JJt, err)
+
+            # Integrate configuration
+            q = pinocchio.integrate(self.model, q, v * dt)
+
+        return self.posP2S(best_q), success, best_err
+
+    @classmethod
+    def createPinocchioModel(
+        cls, urdf_path: str, gravity: Optional[np.ndarray] = None
+    ) -> "PinocchioModel":
+        """Create PinocchioModel from URDF file"""
+        # Create model from URDF file
+        if gravity is None:
+            gravity = np.array([0, 0, -9.81])
+        pm = cls.fromURDF(urdf_path, gravity)
+
+        # Extract joint and link names from URDF file
+        tree = ET.parse(urdf_path)
+        root = tree.getroot()
+
+        # Get joint names (only joints with DOF > 0)
+        joint_names = []
+        for joint in root.findall(".//joint"):
+            joint_type = joint.get("type")
+            if joint_type in ["revolute", "prismatic", "continuous"]:
+                joint_name = joint.get("name")
+                if joint_name:
+                    joint_names.append(joint_name)
+
+        # Get link names
+        link_names = []
+        for link in root.findall(".//link"):
+            link_name = link.get("name")
+            if link_name:
+                link_names.append(link_name)
+
+        # Set joint and link order
+        if joint_names:
+            pm.setJointOrder(joint_names)
+        if link_names:
+            pm.setLinkOrder(link_names)
+
+        return pm
 
 
 if __name__ == "__main__":
