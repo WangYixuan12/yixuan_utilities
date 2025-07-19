@@ -1,6 +1,6 @@
 [project]
 name = "yixuan_utilities"
-version = "2025.07.09"
+version = "2025.07.19"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
