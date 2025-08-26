@@ -171,3 +171,5 @@ cython_debug/
 .pypirc
 
 **/ckpts/
+
+.DS_Store
