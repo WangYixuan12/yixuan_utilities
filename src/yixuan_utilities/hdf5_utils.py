@@ -49,12 +49,15 @@ def load_dict_from_hdf5(filename: str) -> Tuple[dict, h5py.File]:
 def recursively_load_dict_contents_from_group(h5file: h5py.File, path: str) -> dict:
     """...."""
     ans = {}
-    for key, item in h5file[path].items():
-        if isinstance(item, h5py.Dataset):
-            # ans[key] = np.array(item)
-            ans[key] = item
-        elif isinstance(item, h5py.Group):
-            ans[key] = recursively_load_dict_contents_from_group(
-                h5file, path + key + "/"
-            )
+    for key in h5file[path].keys():
+        try:
+            item = h5file[path + key]
+            if isinstance(item, h5py.Dataset):
+                ans[key] = item
+            elif isinstance(item, h5py.Group):
+                ans[key] = recursively_load_dict_contents_from_group(
+                    h5file, path + key + "/"
+                )
+        except Exception as e:
+            print(f"Error loading {key}: {e}")
     return ans
