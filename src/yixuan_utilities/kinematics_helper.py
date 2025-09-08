@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 import numpy as np
 import open3d as o3d
 import pinocchio
-import sapien
+import sapien.core as sapien
 import transforms3d
 import urdfpy
 
