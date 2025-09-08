@@ -12,7 +12,7 @@ import sapien.core as sapien
 import transforms3d
 import urdfpy
 
-from yixuan_utilities.draw_utils import np2o3d
+from yixuan_utilities.open3d_utils import np2o3d
 
 logger = logging.getLogger(__name__)
 
