@@ -36,8 +36,11 @@ class KinHelper:
         elif robot_name == "pyrep_panda":
             urdf_path = f"{package_dir}/robot/pyrep_panda/panda.urdf"
             self.eef_name = "Pandatip"
-        elif robot_name == "vega":
+        elif robot_name == "vega_no_effector":
             urdf_path = f"{package_dir}/robot/vega-urdf/vega_no_effector.urdf"
+            self.eef_name = "none"
+        elif robot_name == "vega_with_robotiq":
+            urdf_path = f"{package_dir}/robot/vega-urdf/vega_with_robotiq.urdf"
             self.eef_name = "none"
         self.robot_name = robot_name
         self.urdf_robot = urdfpy.URDF.load(urdf_path)

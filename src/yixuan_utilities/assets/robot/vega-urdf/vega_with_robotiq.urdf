@@ -385,6 +385,7 @@
     </collision>
   </link>
   <link name="L_ee" />
+  <link name="L_robotiq" />
   <link name="R_arm_l1">
     <inertial>
       <origin xyz="0.02833 -0.05 0.0054" rpy="0 0 0" />
@@ -538,6 +539,7 @@
     </collision>
   </link>
   <link name="R_ee" />
+  <link name="R_robotiq" />
   <link name="lidar">
     <inertial>
       <origin xyz="-0.00548 3.47734E-05 -0.00608" rpy="0 0 0" />
@@ -834,6 +836,11 @@
     <parent link="L_arm_l8" />
     <child link="L_ee" />
   </joint>
+  <joint name="L_robotiq_j0" type="fixed">
+    <origin xyz="0 0 0.24" rpy="0 0 0" />
+    <parent link="L_ee" />
+    <child link="L_robotiq" />
+  </joint>
 
   <joint name="R_arm_j1" type="revolute">
     <origin xyz="0 -0.16946 0" rpy="0 0 0" />
@@ -894,6 +901,11 @@
     <origin xyz="0 0 0" rpy="0 0 1.57079" />
     <parent link="R_arm_l8" />
     <child link="R_ee" />
+  </joint>
+  <joint name="R_robotiq_j0" type="fixed">
+    <origin xyz="0 0 0.24" rpy="0 0 0" />
+    <parent link="R_ee" />
+    <child link="R_robotiq" />
   </joint>
 
   <joint name="lidar_mount" type="fixed">
