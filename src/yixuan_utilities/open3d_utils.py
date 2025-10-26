@@ -262,7 +262,8 @@ def aggr_point_cloud_tensor(
     color_fmt: ImgEncoding = ImgEncoding.RGB_UINT8,
     depth_fmt: ImgEncoding = ImgEncoding.DEPTH_FLOAT,
     pose_fmt: ExtriConvention = ExtriConvention.WORLD_IN_CAM,
-) -> Tuple[np.ndarray, np.ndarray]:
+    extra_features: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Aggregate point cloud from multi-view RGBD obs"""
     # colors: [N, H, W, 3] numpy array in uint8
     # depths: [N, H, W] numpy array in meters
@@ -273,8 +274,14 @@ def aggr_point_cloud_tensor(
         colors = colors / 255.0
     elif color_fmt == ImgEncoding.BGR_UINT8:
         colors = colors[..., ::-1] / 255.0
+    elif color_fmt == ImgEncoding.BGR_FLOAT:
+        colors = colors[..., ::-1]
     if depth_fmt == ImgEncoding.DEPTH_UINT16:
         depths = depths / 1000.0
+
+    if extra_features is not None:
+        extra_features = extra_features.astype(np.float32)
+        colors = np.concatenate([colors, extra_features], axis=-1)
 
     # convert to torch tensor
     device = "cuda"
@@ -344,7 +351,13 @@ def aggr_point_cloud_tensor(
             pcd_tensor, downsample_r, pcd_colors
         )
 
-    return pcd_tensor.cpu().numpy(), pcd_colors.cpu().numpy()
+    if extra_features is not None:
+        pcd_feats = pcd_tensor[..., -extra_features.shape[-1] :].cpu().numpy()
+        pcd_colors = pcd_colors[..., :3]
+    else:
+        pcd_feats = None
+
+    return pcd_tensor.cpu().numpy(), pcd_colors.cpu().numpy(), pcd_feats
 
 
 def np2o3d(

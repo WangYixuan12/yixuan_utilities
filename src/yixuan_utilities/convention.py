@@ -6,6 +6,8 @@ class ImgEncoding(Enum):
 
     RGB_UINT8 = "rgb_uint8"
     BGR_UINT8 = "bgr_uint8"
+    RGB_FLOAT = "rgb_float"
+    BGR_FLOAT = "bgr_float"
     DEPTH_UINT16 = "depth_uint16"
     DEPTH_FLOAT = "depth_float"
 
