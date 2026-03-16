@@ -720,14 +720,14 @@
     <parent link="torso_l1" />
     <child link="torso_l2" />
     <axis xyz="0 1 0" />
-    <limit lower="0" upper="3.141" effort="380" velocity="0.9" />
+    <limit lower="0" upper="1.570" effort="380" velocity="0.9" />
   </joint>
   <joint name="torso_j3" type="revolute">
     <origin xyz="-0.40718 0.058 0.09764" rpy="0 0 0" />
     <parent link="torso_l2" />
     <child link="torso_l3" />
     <axis xyz="0 -1 0" />
-    <limit lower="-1.570" upper="1.570" effort="380" velocity="0.9" />
+    <limit lower="-1.570" upper="0.0" effort="380" velocity="0.9" />
   </joint>
   <joint name="arm_center_j0" type="fixed">
     <origin xyz="-0.05908 -0.078 0.44528" rpy="0 0 0" />

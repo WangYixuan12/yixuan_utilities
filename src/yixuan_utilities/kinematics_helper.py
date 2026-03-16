@@ -54,6 +54,23 @@ class KinHelper:
         # # load pinocchio model
         # self.pinocchio_model = PinocchioModel.createPinocchioModel(urdf_path)
 
+        # load meshes and offsets from urdf_robot
+        self.scales = {}
+        self.offsets = {}
+        for link in self.urdf_robot.links:
+            if len(link.collisions) > 0:
+                collision = link.collisions[0]
+                if (
+                    collision.geometry.mesh is not None
+                    and len(collision.geometry.mesh.meshes) > 0
+                ):
+                    self.scales[link.name] = (
+                        collision.geometry.mesh.scale[0]
+                        if collision.geometry.mesh.scale is not None
+                        else 1.0
+                    )
+                    self.offsets[link.name] = collision.origin
+
         # find end effector frame id
         if self.eef_name != "none":
             self.sapien_eef_idx = self.link_name_to_idx[self.eef_name]
@@ -61,6 +78,12 @@ class KinHelper:
         else:
             self.sapien_eef_idx = None
             # self.sapien_eef_idx = None
+
+        joint_limits = []
+        for joint in self.sapien_robot.get_active_joints():
+            lower, upper = joint.get_limit()[0]
+            joint_limits.append([lower, upper])
+        self.joint_limits: np.ndarray = np.array(self.joint_limits)
 
     def convert_from_sapien_joint_order(
         self, arr: np.ndarray, joint_names: list[str]
@@ -116,6 +139,7 @@ class KinHelper:
         self,
         qpos: np.ndarray,
         link_names: list[str],
+        in_obj_frame: bool = False,
     ) -> dict[str, np.ndarray]:
         """Compute forward kinematics of robot links given joint positions"""
         self.robot_model.compute_forward_kinematics(qpos)
@@ -131,13 +155,18 @@ class KinHelper:
         #         poses_ls.append(pose)
         #     else:
         #         poses_ls.append(np.eye(4))
+        if in_obj_frame:
+            for i in range(len(link_names)):
+                if link_names[i] in self.offsets:
+                    poses_ls[i] = poses_ls[i] @ self.offsets[link_names[i]]
         return {link_name: pose for link_name, pose in zip(link_names, poses_ls)}
 
-    def compute_all_fk(self, qpos: np.ndarray) -> dict[str, np.ndarray]:
+    def compute_all_fk(
+        self, qpos: np.ndarray, in_obj_frame: bool = False
+    ) -> dict[str, np.ndarray]:
         """Compute forward kinematics of all robot links given joint positions"""
         all_link_names = [link.name for link in self.sapien_robot.get_links()]
-        # all_link_names = [frame.name for frame in self.pinocchio_model.model.frames]
-        return self.compute_fk_from_link_names(qpos, all_link_names)
+        return self.compute_fk_from_link_names(qpos, all_link_names, in_obj_frame)
 
     def compute_ik(
         self,
@@ -186,7 +215,9 @@ class KinHelper:
             eps=1e-3,
             damp=damp,
         )
-        return qpos[0]
+        qpos = qpos[0]
+        qpos = np.clip(qpos, self.joint_limits[:, 0], self.joint_limits[:, 1])
+        return qpos
 
         # """Compute IK given initial joint pos and target pose in matrix form"""
         # if eef_idx is None:
