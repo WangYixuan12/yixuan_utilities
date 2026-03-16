@@ -83,7 +83,7 @@ class KinHelper:
         for joint in self.sapien_robot.get_active_joints():
             lower, upper = joint.get_limit()[0]
             joint_limits.append([lower, upper])
-        self.joint_limits: np.ndarray = np.array(self.joint_limits)
+        self.joint_limits: np.ndarray = np.array(joint_limits)
 
     def convert_from_sapien_joint_order(
         self, arr: np.ndarray, joint_names: list[str]
