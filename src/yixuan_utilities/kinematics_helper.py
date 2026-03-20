@@ -81,7 +81,7 @@ class KinHelper:
 
         joint_limits = []
         for joint in self.sapien_robot.get_active_joints():
-            lower, upper = joint.get_limit()[0]
+            lower, upper = joint.get_limits()[0]
             joint_limits.append([lower, upper])
         self.joint_limits: np.ndarray = np.array(joint_limits)
 
